@@ -109,7 +109,6 @@ async function main() {
   }
 }
 
-// Vercel Serverless Functions expects default export = Fastify instance.
 // Bungkus init dalam try/catch: kalau env var hilang dsb., jangan sampai
 // function gagal total (FUNCTION_INVOCATION_FAILED) tanpa pesan yang jelas —
 // buat app darurat yang melaporkan penyebabnya lewat HTTP supaya gampang
@@ -134,7 +133,21 @@ try {
   app = buildFallbackApp(err);
 }
 
-export default app;
+/**
+ * Handler untuk Vercel Serverless Functions.
+ *
+ * JANGAN export Fastify instance langsung: instance-nya bertipe `object`,
+ * bukan function, sedangkan runtime Vercel memanggil default export sebagai
+ * function (req, res). Pola resmi Fastify untuk serverless: await app.ready(),
+ * lalu emit event 'request' ke app.server — server HTTP asli tidak pernah
+ * di-listen, jadi tidak ada port yang bentrok.
+ */
+async function vercelHandler(req: unknown, res: unknown) {
+  await app.ready();
+  app.server.emit('request', req, res);
+}
+
+export default vercelHandler;
 
 if (require.main === module) {
   main();
