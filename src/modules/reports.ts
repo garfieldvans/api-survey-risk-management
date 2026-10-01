@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../plugins/prisma';
-import { authenticate } from '../plugins/auth';
+import { authenticate, assertSurveyAccess } from '../plugins/auth';
 import { ok, AppError } from '../lib/http';
 import { categoryOfScore, GRADES_LABEL_MAP } from './report-shared';
 
@@ -24,6 +24,7 @@ export async function reportRoutes(fastify: FastifyInstance) {
     });
 
     if (!survey) throw new AppError('Survei tidak ditemukan', 404);
+    assertSurveyAccess(request.user!, survey.surveyorId);
 
     // Group answers by section, preserving question order
     const answersBySection: Record<string, Array<{ question: string; answerType: string; value: string }>> = {};

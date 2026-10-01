@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { Role } from '@prisma/client';
 import type { AuthUser } from '../types';
+import { AppError } from '../lib/http';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -25,4 +26,15 @@ export function requireRole(...roles: Role[]) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
   };
+}
+
+/**
+ * Otorisasi tingkat survey: admin boleh mengakses semua, surveyor hanya
+ * survey miliknya sendiri. Lemparkan 403 kalau tidak berhak.
+ */
+export function assertSurveyAccess(user: AuthUser, surveyorId: string): void {
+  if (user.role === Role.ADMIN) return;
+  if (user.id !== surveyorId) {
+    throw new AppError('Anda tidak memiliki akses ke survei ini', 403);
+  }
 }

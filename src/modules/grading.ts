@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Role } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../plugins/prisma';
-import { authenticate, requireRole } from '../plugins/auth';
+import { authenticate, requireRole, assertSurveyAccess } from '../plugins/auth';
 import { ok, AppError } from '../lib/http';
 import { SURVEY_ITEM_CODES, SCORE_MIN, SCORE_MAX, categoryOfScore } from '../shared/index.js';
 
@@ -20,6 +20,11 @@ const gradeSchema = z.object({
 export async function gradingRoutes(fastify: FastifyInstance) {
   fastify.get('/surveys/:id/grade', { preHandler: [authenticate()] }, async (request) => {
     const { id } = request.params as { id: string };
+
+    const survey = await prisma.survey.findUnique({ where: { id }, select: { surveyorId: true } });
+    if (!survey) throw new AppError('Survei tidak ditemukan', 404);
+    assertSurveyAccess(request.user!, survey.surveyorId);
+
     const grade = await prisma.riskGrade.findUnique({
       where: { surveyId: id },
       include: { admin: { select: { id: true, name: true, email: true } } },

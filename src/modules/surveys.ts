@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma, SurveyStatus, Role } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../plugins/prisma';
-import { authenticate, requireRole } from '../plugins/auth';
+import { authenticate, requireRole, assertSurveyAccess } from '../plugins/auth';
 import { ok, AppError } from '../lib/http';
 import { notifyAdmins, notifyAdminsForStatusChange } from './notifications-helpers';
 import { getQuestionIdsForOccupation } from './questions';
@@ -204,7 +204,9 @@ export async function surveyRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/surveys/:id', { preHandler: [authenticate()] }, async (request) => {
     const { id } = request.params as { id: string };
-    return ok({ survey: await getSurveyOrThrow(id) });
+    const survey = await getSurveyOrThrow(id);
+    assertSurveyAccess(request.user!, survey.surveyorId);
+    return ok({ survey });
   });
 
   /**

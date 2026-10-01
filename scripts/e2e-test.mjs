@@ -197,6 +197,28 @@ async function main() {
   const admin = await login(ADMIN);
   record('Auth: login admin', true, ADMIN.email);
 
+  // ---------- OTORISASI ANTAR-SURVEYOR ----------
+  const SURVEYOR2 = { email: 'surveyor2@survey.local', password: 'surveyor234' };
+  const reg = await admin('POST', '/api/auth/register', { ...SURVEYOR2, name: 'Surveyor Dua', role: 'SURVEYOR' });
+  record('Auth: admin register surveyor2', reg.status === 200 || reg.status === 201 || reg.status === 409, `status=${reg.status}`);
+  const s2 = await login(SURVEYOR2);
+  record('Auth: login surveyor2', true, SURVEYOR2.email);
+
+  const crossDetail = await s2('GET', `/api/surveys/${surveyId}`);
+  record('Otorisasi: surveyor2 lihat survey surveyor1 → 403', crossDetail.status === 403, `status=${crossDetail.status}`);
+  const crossReport = await s2('GET', `/api/reports/${surveyId}`);
+  record('Otorisasi: surveyor2 akses report → 403', crossReport.status === 403, `status=${crossReport.status}`);
+  const crossGrade = await s2('GET', `/api/surveys/${surveyId}/grade`);
+  record('Otorisasi: surveyor2 akses grade → 403', crossGrade.status === 403, `status=${crossGrade.status}`);
+  const crossAtt = await s2('GET', `/api/surveys/${surveyId}/attachments`);
+  record('Otorisasi: surveyor2 akses attachments → 403', crossAtt.status === 403, `status=${crossAtt.status}`);
+  const crossUpload = await s2('POST', `/api/surveys/${surveyId}/attachments`);
+  record('Otorisasi: surveyor2 upload → 403', crossUpload.status === 403, `status=${crossUpload.status}`);
+
+  // Upload nonaktif (R2 belum dikonfigurasi) → 503, bukan 500
+  const attUpload = await surveyor('POST', `/api/surveys/${surveyId}/attachments`);
+  record('Upload: nonaktif → 503 (bukan 500)', attUpload.status === 503, `status=${attUpload.status} ${attUpload.text.slice(0, 100)}`);
+
   const notifBefore = await admin('GET', '/api/notifications');
   const notifHasNew = JSON.stringify(notifBefore.json ?? {}).includes('Survei baru masuk');
   record('Notifications: admin dapat notif survey baru', notifBefore.status === 200 && notifHasNew, `status=${notifBefore.status}`);
@@ -209,14 +231,19 @@ async function main() {
   const invalidTr = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'ONBOARD' });
   record('Negative: transisi balik GRADING→ONBOARD → 400', invalidTr.status === 400, `status=${invalidTr.status}`);
 
-  // admin override grading
+  // admin override grading — schema: items[8] { itemCode, score 1..8 } + notes string
+  const ITEM_CODES = ['management', 'construction', 'occupancy', 'protection', 'exposure', 'natural_hazards', 'other_peril', 'loss_estimate'];
   const override = await admin('POST', `/api/surveys/${surveyId}/grade`, {
-    inputs: { ...GRADING_INPUTS, mKlaim: '1-2', pApar: 'avg' },
-    notes: { management: 'override oleh admin' },
+    items: ITEM_CODES.map((itemCode) => ({ itemCode, score: 7 })),
+    notes: 'override oleh admin',
   });
   record('Grading: admin override', override.status === 200 || override.status === 201, `status=${override.status} ${override.text.slice(0, 150)}`);
 
-  for (const next of ['DONE', 'CLOSED']) {
+  // Override yang sukses otomatis memindah status ke DONE — sesuaikan langkah
+  const cur = await admin('GET', `/api/surveys/${surveyId}`);
+  const curStatus = cur.json?.data?.survey?.status;
+  const remaining = curStatus === 'GRADING' ? ['DONE', 'CLOSED'] : ['CLOSED'];
+  for (const next of remaining) {
     const tr = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: next });
     record(`Status: →${next}`, tr.status === 200, `status=${tr.status} ${tr.text.slice(0, 120)}`);
   }
