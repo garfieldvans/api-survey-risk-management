@@ -136,6 +136,6 @@ try {
 
 export default app;
 
-if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+if (require.main === module) {
   main();
 }
