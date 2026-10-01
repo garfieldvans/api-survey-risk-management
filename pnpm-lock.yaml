@@ -39,8 +39,8 @@ importers:
         specifier: ^4.28.1
         version: 4.29.1
       nanoid:
-        specifier: ^5.0.7
-        version: 5.1.16
+        specifier: ^4.0.2
+        version: 4.0.2
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -532,9 +532,9 @@ packages:
   mnemonist@0.39.8:
     resolution: {integrity: sha512-vyWo2K3fjrUw8YeeZ1zF0fy6Mu59RHokURlld8ymdUPjMlD9EC9ov1/YPqTgqRvUN9nTr3Gqfz29LYAmu0PHPQ==}
 
-  nanoid@5.1.16:
-    resolution: {integrity: sha512-kVrnsrJqMR8+oLJnGEmSWw9BivK5mt7H3FZatVRjrc5wGqFYuBxX1yG7+A7Gi5AefkX6t/oCkizcQgpu0cY1dQ==}
-    engines: {node: ^18 || >=20}
+  nanoid@4.0.2:
+    resolution: {integrity: sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==}
+    engines: {node: ^14 || ^16 || >=18}
     hasBin: true
 
   obliterator@2.0.5:
@@ -1213,7 +1213,7 @@ snapshots:
     dependencies:
       obliterator: 2.0.5
 
-  nanoid@5.1.16: {}
+  nanoid@4.0.2: {}
 
   obliterator@2.0.5: {}
 
