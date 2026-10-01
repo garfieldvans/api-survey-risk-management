@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "fastify",
   "installCommand": "pnpm install",
-  "buildCommand": "prisma generate && tsc -p tsconfig.json",
+  "buildCommand": "pnpm exec prisma generate && tsc -p tsconfig.json",
   "routes": [
     {
       "src": "/(.*)",
