@@ -3,7 +3,6 @@
   "framework": "fastify",
   "installCommand": "pnpm install",
   "buildCommand": "prisma generate && tsc -p tsconfig.json",
-  "output": "serverless",
   "routes": [
     {
       "src": "/(.*)",
