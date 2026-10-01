@@ -39,9 +39,14 @@ export async function authRoutes(fastify: FastifyInstance) {
       role: user.role,
     });
 
+    // Web & API di domain berbeda (cross-site) → cookie HARUS SameSite=None +
+    // Secure di production, kalau tidak browser akan menolaknya. Di lokal (http)
+    // pakai Lax. Lihat DEPLOY.md.
+    const isProd = process.env.NODE_ENV === 'production';
     reply.setCookie(fastify.config.jwtCookieName, token, {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
@@ -71,7 +76,11 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/auth/logout', async (_request, reply) => {
-    reply.clearCookie(fastify.config.jwtCookieName, { path: '/' });
+    reply.clearCookie(fastify.config.jwtCookieName, {
+      path: '/',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
     return ok({ message: 'Logged out' });
   });
 
