@@ -1,12 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "fastify",
   "installCommand": "pnpm install",
   "buildCommand": "pnpm run build",
-  "routes": [
+  "builds": [
     {
-      "src": "/(.*)",
-      "dest": "dist/server.js"
+      "src": "dist/server.js",
+      "use": "@vercel/node"
     }
   ]
 }
