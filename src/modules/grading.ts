@@ -52,7 +52,9 @@ export async function gradingRoutes(fastify: FastifyInstance) {
     const totalScore = body.items.reduce((sum, r) => sum + r.score, 0);
     const category = categoryOfScore(totalScore);
 
-    // Upsert 8 SurveyResponse rows + RiskGrade, move status to DONE in one transaction
+    // Upsert 8 SurveyResponse rows + RiskGrade, move status to DONE in one
+    // transaction. Timeout dinaikkan: di serverless + Neon, per-query latency
+    // tinggi membuat default 5s Prisma sering expired (error P2028 → 500).
     const grade = await prisma.$transaction(async (tx) => {
       await tx.surveyResponse.deleteMany({ where: { surveyId: id } });
       await tx.surveyResponse.createMany({
@@ -85,7 +87,7 @@ export async function gradingRoutes(fastify: FastifyInstance) {
           notes: body.notes,
         },
       });
-    });
+    }, { timeout: 15000, maxWait: 10000 });
 
     return ok({ grade });
   });

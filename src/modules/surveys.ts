@@ -223,8 +223,24 @@ export async function surveyRoutes(fastify: FastifyInstance) {
 
     await validateAnswers(body.answers, occupation.id);
 
-    // Create in a single transaction
-    const survey = await prisma.$transaction(async (tx) => {
+    // Prefetch data grading SEKALI di luar transaksi supaya jumlah query di
+    // dalam transaksi seminimal mungkin (lihat catatan timeout di bawah).
+    let itemByCode: Map<string, string> | null = null;
+    if (body.grading) {
+      const dbItems = await prisma.surveyItem.findMany();
+      itemByCode = new Map(dbItems.map((i) => [i.code, i.id]));
+      const missingItems = GRADE_ITEM_CODES.filter((c) => !itemByCode!.has(c));
+      if (missingItems.length > 0) {
+        throw new AppError(`SurveyItem belum di-seed: ${missingItems.join(', ')}`, 500);
+      }
+    }
+
+    // Create in a single transaction.
+    // PENTING: di serverless (Vercel + Neon), latency per query bisa ~1 detik.
+    // Default timeout interactive transaction Prisma hanya 5 detik — kalau
+    // kelebihan muncul error P2028 "Transaction already closed" → 500 di FE.
+    // Naikkan timeoutnya dan jaga isi transaksi tetap ringkas.
+    const createdSurveyId: string = await prisma.$transaction(async (tx) => {
       const property = await tx.property.create({
         data: {
           name: body.property.name,
@@ -258,19 +274,12 @@ export async function surveyRoutes(fastify: FastifyInstance) {
       // Risk grading mandiri surveyor — skor dihitung ulang server-side (authoritative)
       if (body.grading) {
         const gradeResult = computeGradeScores(body.grading.inputs);
-        const dbItems = await tx.surveyItem.findMany();
-        const itemByCode = new Map(dbItems.map((i) => [i.code, i.id]));
-        const missingItems = GRADE_ITEM_CODES.filter((c) => !itemByCode.has(c));
-        if (missingItems.length > 0) {
-          throw new AppError(`SurveyItem belum di-seed: ${missingItems.join(', ')}`, 500);
-        }
-
         const notesMap = body.grading.notes ?? {};
         await tx.surveyResponse.deleteMany({ where: { surveyId: s.id } });
         await tx.surveyResponse.createMany({
           data: GRADE_ITEM_CODES.map((code) => ({
             surveyId: s.id,
-            itemId: itemByCode.get(code)!,
+            itemId: itemByCode!.get(code)!,
             score: gradeResult.scores[code],
             notes: notesMap[code as keyof typeof notesMap] ?? null,
           })),
@@ -287,16 +296,20 @@ export async function surveyRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return tx.survey.findUnique({
-        where: { id: s.id },
-        include: {
-          property: { include: { occupation: true } },
-          surveyor: true,
-          answers: { include: { question: true } },
-          attachments: true,
-          grade: true,
-        },
-      });
+      return s.id;
+    }, { timeout: 15000, maxWait: 10000 });
+
+    // Read final SETELAH transaksi commit — query berat dengan banyak include
+    // tidak perlu memakan budget timeout transaksi.
+    const survey = await prisma.survey.findUnique({
+      where: { id: createdSurveyId },
+      include: {
+        property: { include: { occupation: true } },
+        surveyor: true,
+        answers: { include: { question: true } },
+        attachments: true,
+        grade: true,
+      },
     });
 
     // Notify admins (best-effort)
@@ -354,7 +367,9 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     // Cleanup R2 files
     await cleanupSurveyR2Files(survey.attachments);
 
-    // Delete in reverse dependency order
+    // Delete in reverse dependency order. Bentuk batch array dikirim sebagai
+    // SATU round-trip ke DB (bukan callback per-query), jadi aman dari error
+    // P2028 "Transaction already closed" — tidak perlu timeout ekstra.
     await prisma.$transaction([
       prisma.notification.deleteMany({ where: { surveyId: id } }),
       prisma.surveyAttachment.deleteMany({ where: { surveyId: id } }),
