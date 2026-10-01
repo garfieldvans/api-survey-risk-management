@@ -72,7 +72,9 @@ function buildServer() {
 
     if ((error as any).statusCode && error.message) {
       const status = (error as any).statusCode;
-      if (status >= 400 && status < 500) {
+      // Teruskan semua status 4xx + 503 (service disabled). 503 dipakai untuk
+      // fitur yang memang belum diaktifkan (mis. upload R2) — bukan bug server.
+      if ((status >= 400 && status < 500) || status === 503) {
         return reply.code(status).send({ error: error.message });
       }
     }
