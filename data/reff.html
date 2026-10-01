@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Survey Report & Risk Grading — Property Aswata</title>
+<style>
+  :root{
+    --navy:#1E3A5F;--navy2:#2D4A6B;--blue:#2E6DA4;--lblue:#D6E4F0;--llblue:#EEF5FB;
+    --white:#FFFFFF;--gray1:#F5F7FA;--gray2:#E1E7EF;--gray3:#8A9BB0;--dark:#1A2332;
+    --red:#BA0517;--lred:#FCE9EA;--green:#2E844A;--lgreen:#EAF3DE;
+    --orange:#E07B00;--lorng:#FEF3E2;--purple:#5A31AA;--lpurp:#F3EEFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--gray1);color:var(--dark);min-height:100vh}
+
+  /* HEADER */
+  .app-header{background:var(--navy);padding:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+  .header-inner{max-width:900px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px}
+  .header-logo{background:var(--white);border-radius:8px;padding:4px 10px;font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.5px}
+  .header-title{font-size:16px;font-weight:600;color:var(--white)}
+  .header-sub{font-size:11px;color:var(--lblue);margin-top:2px}
+  .header-badge{margin-left:auto;background:var(--blue);color:var(--white);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600}
+
+  /* PROGRESS */
+  .progress-wrap{background:var(--navy2);padding:10px 20px}
+  .progress-inner{max-width:900px;margin:0 auto}
+  .progress-steps{display:flex;gap:0;overflow-x:auto}
+  .pstep{flex:1;min-width:80px;text-align:center;padding:6px 4px;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;position:relative}
+  .pstep.active{border-bottom-color:var(--white)}
+  .pstep.done{border-bottom-color:var(--green)}
+  .pstep-num{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.15);color:var(--white);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;margin:0 auto 3px}
+  .pstep.active .pstep-num{background:var(--white);color:var(--navy)}
+  .pstep.done .pstep-num{background:var(--green);color:var(--white)}
+  .pstep-label{font-size:9px;color:rgba(255,255,255,.7);white-space:nowrap}
+  .pstep.active .pstep-label{color:var(--white);font-weight:600}
+
+  /* MAIN */
+  .main{max-width:900px;margin:24px auto;padding:0 16px 40px}
+
+  /* SECTION CARD */
+  .section-card{background:var(--white);border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .section-card.hidden{display:none}
+  .sec-hdr{padding:14px 20px;display:flex;align-items:center;gap:10px}
+  .sec-hdr-icon{font-size:20px}
+  .sec-hdr-text{flex:1}
+  .sec-hdr-title{font-size:14px;font-weight:700;color:var(--white)}
+  .sec-hdr-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:1px}
+  .sec-body{padding:20px}
+
+  /* FORM ELEMENTS */
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;font-size:12px;font-weight:600;color:var(--dark);margin-bottom:6px}
+  .form-group label span.req{color:var(--red)}
+  .form-group .hint{font-size:11px;color:var(--gray3);margin-top:4px;font-style:italic}
+  input[type=text],input[type=number],input[type=date],textarea,select{
+    width:100%;padding:10px 12px;border:1.5px solid var(--gray2);border-radius:8px;
+    font-size:13px;color:var(--dark);background:var(--white);transition:border .15s;
+    font-family:inherit;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue)}
+  textarea{min-height:80px;resize:vertical}
+
+  /* RADIO/CHECKBOX CARDS */
+  .radio-grid{display:grid;gap:8px}
+  .radio-grid.cols-2{grid-template-columns:1fr 1fr}
+  .radio-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+  .radio-grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .radio-card{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1.5px solid var(--gray2);border-radius:8px;cursor:pointer;transition:all .15s;background:var(--white)}
+  .radio-card:hover{border-color:var(--blue);background:var(--llblue)}
+  .radio-card input{margin-top:2px;accent-color:var(--navy);flex-shrink:0}
+  .radio-card .rc-text{flex:1}
+  .radio-card .rc-label{font-size:12px;font-weight:600;color:var(--dark);display:block}
+  .radio-card .rc-desc{font-size:11px;color:var(--gray3);margin-top:2px}
+  .radio-card .rc-score{font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;display:inline-block;margin-top:4px}
+  .radio-card.selected{border-color:var(--navy);background:var(--llblue)}
+  .score-good{background:var(--lgreen);color:var(--green)}
+  .score-avg{background:var(--lorng);color:var(--orange)}
+  .score-marg{background:var(--lred);color:var(--red)}
+  .score-poor{background:var(--lpurp);color:var(--purple)}
+
+  /* SEARCH INPUT */
+  .search-wrap{position:relative}
+  .search-input{padding-left:36px !important}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray3);font-size:14px}
+  .dropdown-list{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid var(--blue);border-radius:8px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none}
+  .dropdown-item{padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--gray2);font-size:12px}
+  .dropdown-item:hover{background:var(--llblue)}
+  .dropdown-item .di-code{font-weight:700;color:var(--navy);font-size:11px}
+  .dropdown-item .di-desc{color:var(--dark);margin:2px 0}
+  .dropdown-item .di-cat{font-size:10px;color:var(--gray3)}
+  .dropdown-list.show{display:block}
+
+  /* CHECKLIST */
+  .check-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;background:var(--gray1)}
+  .check-item input{accent-color:var(--green);width:16px;height:16px;flex-shrink:0}
+  .check-item label{font-size:12px;color:var(--dark);cursor:pointer}
+
+  /* TIPS */
+  .tip-box{background:var(--llblue);border:0.5px solid var(--blue);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:11px;color:var(--navy2);line-height:1.7}
+  .tip-box.warn{background:var(--lorng);border-color:var(--orange);color:#412402}
+  .tip-box.danger{background:var(--lred);border-color:var(--red);color:#3D0000}
+
+  /* GRID 2 */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  /* BUTTONS */
+  .btn-wrap{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+  .btn{padding:12px 28px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+  .btn-primary{background:var(--navy);color:var(--white)}
+  .btn-primary:hover{background:var(--navy2)}
+  .btn-secondary{background:var(--gray2);color:var(--dark)}
+  .btn-secondary:hover{background:var(--gray3);color:var(--white)}
+  .btn-success{background:var(--green);color:var(--white)}
+
+  /* RESULT CARD */
+  .result-card{border-radius:12px;padding:20px;text-align:center;margin-bottom:16px}
+  .result-card.good{background:var(--lgreen);border:2px solid var(--green)}
+  .result-card.average{background:var(--lorng);border:2px solid var(--orange)}
+  .result-card.marginal{background:var(--lred);border:2px solid var(--red)}
+  .result-card.poor{background:var(--lpurp);border:2px solid var(--purple)}
+  .result-rating{font-size:32px;font-weight:800;margin-bottom:4px}
+  .result-rating.good{color:var(--green)}
+  .result-rating.average{color:var(--orange)}
+  .result-rating.marginal{color:var(--red)}
+  .result-rating.poor{color:var(--purple)}
+  .result-score{font-size:14px;color:var(--dark);margin-bottom:4px}
+  .result-note{font-size:12px;color:var(--gray3)}
+
+  /* SCORE TABLE */
+  .score-tbl{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+  .score-tbl th{background:var(--navy);color:var(--white);padding:8px 12px;text-align:left;font-size:11px}
+  .score-tbl td{padding:8px 12px;border-bottom:0.5px solid var(--gray2)}
+  .score-tbl tr:last-child td{border-bottom:none;font-weight:700;background:var(--gray1)}
+  .badge{display:inline-flex;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+  .b-good{background:var(--lgreen);color:var(--green)}
+  .b-avg{background:var(--lorng);color:var(--orange)}
+  .b-marg{background:var(--lred);color:var(--red)}
+  .b-poor{background:var(--lpurp);color:var(--purple)}
+
+  /* DIVIDER */
+  .divider{height:1px;background:var(--gray2);margin:16px 0}
+
+  @media(max-width:600px){
+    .radio-grid.cols-4{grid-template-columns:1fr 1fr}
+    .radio-grid.cols-3{grid-template-columns:1fr 1fr}
+    .grid-2{grid-template-columns:1fr}
+    .progress-steps{gap:0}
+    .pstep-label{display:none}
+  }
+
+  /* NEW: occupancy block toggle */
+  .occ-block.hidden{display:none}
+  /* NEW: upload preview */
+  input[type=file]{width:100%;padding:10px 12px;border:1.5px dashed var(--gray3);border-radius:8px;font-size:12px;background:var(--gray1);cursor:pointer}
+  .upload-preview{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  .upload-item{width:90px;text-align:center;font-size:10px;color:var(--dark)}
+  .upload-item img{width:90px;height:90px;object-fit:cover;border-radius:8px;border:1.5px solid var(--gray2);display:block;margin-bottom:4px}
+  .upload-item .file-icon{width:90px;height:90px;border-radius:8px;border:1.5px solid var(--gray2);display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--gray1);margin-bottom:4px}
+  .upload-item .file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .upload-item .file-remove{color:var(--red);cursor:pointer;font-size:10px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-inner">
+    <div class="header-logo">aswata</div>
+    <div>
+      <div class="header-title">Survey Report & Risk Grading — Property</div>
+      <div class="header-sub">Digitalisasi Form Survey | Aswata Insurance</div>
+    </div>
+    <div class="header-badge">🏢 Property</div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-inner">
+    <div class="progress-steps">
+      <div class="pstep active" onclick="goTo(0)" id="ps0"><div class="pstep-num">1</div><div class="pstep-label">Info Umum</div></div>
+      <div class="pstep" onclick="goTo(1)" id="ps1"><div class="pstep-num">2</div><div class="pstep-label">Survey Umum</div></div>
+      <div class="pstep" onclick="goTo(2)" id="ps2"><div class="pstep-num">3</div><div class="pstep-label">Khusus Okupansi</div></div>
+      <div class="pstep" onclick="goTo(3)" id="ps3"><div class="pstep-num">4</div><div class="pstep-label">Upload Dok.</div></div>
+      <div class="pstep" onclick="goTo(4)" id="ps4"><div class="pstep-num">5</div><div class="pstep-label">Management</div></div>
+      <div class="pstep" onclick="goTo(5)" id="ps5"><div class="pstep-num">6</div><div class="pstep-label">Construction</div></div>
+      <div class="pstep" onclick="goTo(6)" id="ps6"><div class="pstep-num">7</div><div class="pstep-label">Occupancy</div></div>
+      <div class="pstep" onclick="goTo(7)" id="ps7"><div class="pstep-num">8</div><div class="pstep-label">Protection</div></div>
+      <div class="pstep" onclick="goTo(8)" id="ps8"><div class="pstep-num">9</div><div class="pstep-label">Exposure</div></div>
+      <div class="pstep" onclick="goTo(9)" id="ps9"><div class="pstep-num">10</div><div class="pstep-label">Nat. Hazards</div></div>
+      <div class="pstep" onclick="goTo(10)" id="ps10"><div class="pstep-num">11</div><div class="pstep-label">Loss Est.</div></div>
+      <div class="pstep" onclick="goTo(11)" id="ps11"><div class="pstep-num">✓</div><div class="pstep-label">Hasil</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- SECTION 0: INFO UMUM -->
+<div class="section-card" id="sec0">
+  <div class="sec-hdr" style="background:var(--navy)">
+    <span class="sec-hdr-icon">📋</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Informasi Umum Survey</div>
+      <div class="sec-hdr-sub">Data dasar objek risiko yang disurvey</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Nama Tertanggung <span class="req">*</span></label>
+        <input type="text" id="f_tertanggung" placeholder="PT / CV / Nama Perorangan">
+      </div>
+      <div class="form-group">
+        <label>Nama Komersial / Merk</label>
+        <input type="text" id="f_merk" placeholder="Nama usaha / brand">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Jenis Okupansi <span class="req">*</span></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="okupansi" value="commercial">
+          <div class="rc-text"><span class="rc-label">🏢 Commercial</span><span class="rc-desc">Mall, hotel, perkantoran, ruko, sekolah, RS</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="okupansi" value="industrial">
+          <div class="rc-text"><span class="rc-label">🏭 Industrial</span><span class="rc-desc">Pabrik, gudang, manufaktur</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="okupansi" value="energy">
+          <div class="rc-text"><span class="rc-label">⚡ Energy</span><span class="rc-desc">Pertambangan, oil & gas, power plant</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Kode Okupansi OJK <span class="req">*</span></label>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="ojk-search" placeholder="Ketik nama aktivitas / kode OJK..." autocomplete="off" oninput="searchOJK(this.value)">
+        <div class="dropdown-list" id="ojk-dropdown"></div>
+      </div>
+      <div id="ojk-selected" style="display:none;margin-top:8px;padding:10px 14px;background:var(--lgreen);border-radius:8px;font-size:12px;color:var(--green)"></div>
+      <div class="hint">Ketik nama aktivitas untuk mencari kode OJK yang sesuai</div>
+    </div>
+
+    <div class="form-group">
+      <label>Alamat Risiko Lengkap <span class="req">*</span></label>
+      <textarea id="f_alamat" placeholder="Jalan, nomor, kelurahan, kecamatan, kota, provinsi"></textarea>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Kota / Kabupaten</label>
+        <input type="text" id="f_kota" placeholder="Nama kota">
+      </div>
+      <div class="form-group">
+        <label>Koordinat GPS</label>
+        <input type="text" id="f_gps" placeholder="-6.2088, 106.8456" readonly>
+        <div class="hint">📍 <a href="#" onclick="getGPS()" style="color:var(--blue)">Klik untuk ambil lokasi GPS otomatis</a></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Tanggal Survey <span class="req">*</span></label>
+        <input type="date" id="f_tanggal">
+      </div>
+      <div class="form-group">
+        <label>Nama Surveyor <span class="req">*</span></label>
+        <input type="text" id="f_surveyor" placeholder="Nama lengkap surveyor">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Nama Marketing / Cabang</label>
+        <input type="text" id="f_marketing" placeholder="Nama marketing / kantor cabang">
+      </div>
+      <div class="form-group">
+        <label>Nilai Pertanggungan / TSI (Rp)</label>
+        <input type="number" id="f_tsi" placeholder="0" min="0">
+        <div class="hint">Total Sum Insured dalam Rupiah</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 1: SURVEY UMUM -->
+<div class="section-card hidden" id="sec1">
+  <div class="sec-hdr" style="background:var(--navy)">
+    <span class="sec-hdr-icon">🧭</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Survey Umum</div>
+      <div class="sec-hdr-sub">Pertanyaan dasar yang berlaku untuk semua jenis okupansi</div>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">A. Profil Usaha</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Jumlah Karyawan / Tenaga Kerja</label>
+        <input type="number" id="gu_karyawan" min="0" placeholder="Contoh: 56">
+      </div>
+      <div class="form-group">
+        <label>Usaha Berjalan Sejak Tahun</label>
+        <input type="number" id="gu_tahun_berdiri" min="1900" max="2026" placeholder="Contoh: 2002">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Jam Operasional</label>
+        <input type="text" id="gu_jam_operasional" placeholder="Contoh: 09.00 – 19.00">
+      </div>
+      <div class="form-group">
+        <label>Ada Rencana Perubahan / Ekspansi ke Depan?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_rencana" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_rencana" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Jika ada, jelaskan rencana perubahan / ekspansi</label>
+      <textarea id="gu_rencana_detail" placeholder="Contoh: penambahan gudang baru, renovasi, pergantian mesin produksi, dll."></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">B. Bangunan & Lingkungan Sekitar</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Jumlah Bangunan di Lokasi</label>
+        <input type="number" id="gu_jml_bangunan" min="1" placeholder="Contoh: 2">
+      </div>
+      <div class="form-group">
+        <label>Ada Pemisah Antar Bangunan (Fire Wall / Jarak Aman)?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_pemisah" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_pemisah" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Kondisi Lingkungan Sekitar Objek (4 sisi)</label>
+      <div class="grid-2">
+        <input type="text" id="gu_lingk_depan" placeholder="Depan: ...">
+        <input type="text" id="gu_lingk_belakang" placeholder="Belakang: ...">
+        <input type="text" id="gu_lingk_kiri" placeholder="Kiri: ...">
+        <input type="text" id="gu_lingk_kanan" placeholder="Kanan: ...">
+      </div>
+      <div class="hint">Contoh isian: "tanah kosong", "permukiman warga", "jalan raya", "pabrik lain", dst.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">C. Sistem Proteksi Kebakaran (Ketersediaan)</div>
+    <div class="tip-box">📌 Ini pertanyaan ketersediaan/deskripsi. Penilaian skor proteksi ada di tahap terpisah (Protection).</div>
+    <div style="margin-top:12px">
+      <div class="check-item"><input type="checkbox" id="gu_apar"><label for="gu_apar">APAR (Alat Pemadam Api Ringan) tersedia dan tersebar merata</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_hidran"><label for="gu_hidran">Hidran (indoor/outdoor) tersedia</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_detektor"><label for="gu_detektor">Detektor asap/panas otomatis tersedia</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_sprinkler"><label for="gu_sprinkler">Sistem sprinkler otomatis tersedia</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_alarm"><label for="gu_alarm">Sistem alarm manual / panel kontrol kebakaran tersedia</label></div>
+    </div>
+    <div class="grid-2" style="margin-top:12px">
+      <div class="form-group">
+        <label>Sumber Air untuk Pemadaman</label>
+        <input type="text" id="gu_sumber_air" placeholder="Contoh: tangki bawah tanah, PDAM, sumur">
+      </div>
+      <div class="form-group">
+        <label>Jarak & Waktu Tempuh ke Pos Damkar Terdekat</label>
+        <input type="text" id="gu_jarak_damkar" placeholder="Contoh: 10 km / ± 15 menit">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">D. Manajemen Keselamatan & Tanggap Darurat</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Ada Unit/Petugas K3 atau Safety Officer?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_k3" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_k3" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Frekuensi Pelatihan Tanggap Darurat / Fire Drill</label>
+        <select id="gu_pelatihan">
+          <option value="">— pilih —</option>
+          <option value="rutin">Rutin (≥1x/tahun)</option>
+          <option value="jarang">Jarang / tidak terjadwal</option>
+          <option value="none">Belum pernah</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Ada Prosedur Evakuasi & Jalur Evakuasi Tertulis?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_evakuasi" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_evakuasi" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ada Izin Kerja Panas (Hot Work Permit)?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_hotwork" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_hotwork" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">E. Keamanan Lokasi</div>
+    <div style="margin-top:8px">
+      <div class="check-item"><input type="checkbox" id="gu_satpam"><label for="gu_satpam">Ada penjagaan keamanan (satpam) 24 jam</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_cctv"><label for="gu_cctv">CCTV terpasang & berfungsi di titik-titik utama</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_pagar"><label for="gu_pagar">Pagar/tembok keliling mengamankan area</label></div>
+      <div class="check-item"><input type="checkbox" id="gu_akses"><label for="gu_akses">Kontrol akses keluar-masuk (kartu/log tamu) diterapkan</label></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">F. Riwayat Kerugian (Loss History)</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Pernah Ada Klaim Asuransi 5 Tahun Terakhir?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_klaim_ada" value="no"><div class="rc-text"><span class="rc-label">Tidak pernah</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="gu_klaim_ada" value="yes"><div class="rc-text"><span class="rc-label">Pernah</span></div></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Jika pernah, jenis peril / penyebab</label>
+        <input type="text" id="gu_klaim_jenis" placeholder="Contoh: kebakaran, banjir, pencurian">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Ringkasan Kejadian & Tindak Lanjut / Perbaikan yang Dilakukan</label>
+      <textarea id="gu_klaim_ringkasan" placeholder="Ceritakan singkat kejadian dan langkah perbaikan (risk improvement) yang sudah dilakukan..."></textarea>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- SECTION 2: SURVEY KHUSUS OKUPANSI -->
+<div class="section-card hidden" id="sec2">
+  <div class="sec-hdr" style="background:var(--blue)">
+    <span class="sec-hdr-icon">🎯</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Survey Khusus Okupansi</div>
+      <div class="sec-hdr-sub">Pertanyaan tambahan yang menyesuaikan jenis usaha/okupansi objek</div>
+    </div>
+  </div>
+  <div class="sec-body">
+
+    <div class="form-group">
+      <label>Pilih Jenis Usaha / Okupansi Spesifik <span class="req">*</span></label>
+      <select id="sp_jenis" onchange="showOccupancyBlock(this.value)">
+        <option value="">— pilih jenis usaha —</option>
+        <option value="warehouse">🏬 Gudang / Warehouse</option>
+        <option value="manufaktur">🏭 Pabrik / Manufaktur</option>
+        <option value="kantor">🏢 Perkantoran</option>
+        <option value="retail">🛍️ Retail / Mall / Pertokoan</option>
+        <option value="hotel">🏨 Hotel / Resort</option>
+        <option value="kesehatan">🏥 Rumah Sakit / Klinik</option>
+        <option value="lainnya">📦 Lainnya</option>
+      </select>
+      <div class="hint">Pertanyaan di bawah akan otomatis menyesuaikan dengan pilihan ini.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="sp-placeholder" class="tip-box">👆 Silakan pilih jenis usaha di atas untuk menampilkan pertanyaan khusus.</div>
+
+    <!-- WAREHOUSE -->
+    <div class="occ-block hidden" id="sp-warehouse">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Pertanyaan Khusus Gudang / Warehouse</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Sistem Racking / Rak Penyimpanan</label>
+          <select id="sp_wh_racking"><option value="">— pilih —</option><option value="none">Tidak ada, ditumpuk lantai</option><option value="low">Rak rendah (&lt;3 m)</option><option value="high">Rak tinggi (≥3 m / high-rise racking)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Estimasi Tinggi Tumpukan Barang Maksimum</label>
+          <input type="text" id="sp_wh_tinggi" placeholder="Contoh: 4 meter">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Kategori Barang yang Disimpan</label>
+        <input type="text" id="sp_wh_barang" placeholder="Contoh: bahan makanan kemasan, tekstil, elektronik, bahan kimia">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Ada Area Cold Storage / Freezer?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_wh_cold" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_wh_cold" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ada Aktivitas Charging Forklift Baterai di Dalam Gedung?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_wh_forklift" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_wh_forklift" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Jumlah Pintu Loading Dock</label>
+          <input type="number" id="sp_wh_dock" min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Sistem Penataan Barang</label>
+          <select id="sp_wh_penataan"><option value="">— pilih —</option><option value="fifo">FIFO / FEFO tertata rapi</option><option value="acak">Tidak tertata / acak</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANUFAKTUR -->
+    <div class="occ-block hidden" id="sp-manufaktur">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Pertanyaan Khusus Pabrik / Manufaktur</div>
+      <div class="form-group">
+        <label>Jenis Mesin Produksi Utama & Sumber Energi</label>
+        <input type="text" id="sp_mf_mesin" placeholder="Contoh: mesin injeksi plastik - listrik, boiler - gas">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Ada Proses dengan Panas / Api Terbuka?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_panas" value="yes"><div class="rc-text"><span class="rc-label">Ada</span><span class="rc-desc">Welding, furnace, oven, dll</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_panas" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ada Potensi Debu Mudah Meledak (Dust Explosion)?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_debu" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_debu" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Ada Boiler / Genset Besar?</label>
+          <input type="text" id="sp_mf_boiler" placeholder="Kapasitas & lokasi, jika ada">
+        </div>
+        <div class="form-group">
+          <label>Ada Penyimpanan Bahan Kimia / Cairan Mudah Terbakar?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_kimia" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_kimia" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>MSDS (Material Safety Data Sheet) Tersedia untuk Bahan Berbahaya?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_msds" value="yes"><div class="rc-text"><span class="rc-label">Tersedia</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_mf_msds" value="no"><div class="rc-text"><span class="rc-label">Tidak tersedia</span></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- KANTOR -->
+    <div class="occ-block hidden" id="sp-kantor">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Pertanyaan Khusus Perkantoran</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Jumlah Lantai & Estimasi Kapasitas Orang</label>
+          <input type="text" id="sp_kt_kapasitas" placeholder="Contoh: 10 lantai, ±500 orang">
+        </div>
+        <div class="form-group">
+          <label>Ada Ruang Server / Data Center?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_kt_server" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_kt_server" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Jika ada ruang server, proteksi kebakaran khusus (gas/FM200) tersedia?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_kt_fm200" value="yes"><div class="rc-text"><span class="rc-label">Tersedia</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_kt_fm200" value="no"><div class="rc-text"><span class="rc-label">Tidak tersedia / N/A</span></div></label>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Jumlah Lift & Tangga Darurat</label>
+          <input type="text" id="sp_kt_lift" placeholder="Contoh: 4 lift, 2 tangga darurat">
+        </div>
+        <div class="form-group">
+          <label>Lokasi Area Parkir</label>
+          <select id="sp_kt_parkir"><option value="">— pilih —</option><option value="basement">Basement gedung</option><option value="terpisah">Gedung terpisah</option><option value="luar">Area terbuka</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- RETAIL -->
+    <div class="occ-block hidden" id="sp-retail">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Pertanyaan Khusus Retail / Mall / Pertokoan</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Jumlah Tenant / Unit Usaha di Dalamnya</label>
+          <input type="number" id="sp_rt_tenant" min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Ada Area Food Court dengan Kompor/LPG?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rt_foodcourt" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rt_foodcourt" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Ada Eskalator / Lift Penumpang?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rt_eskalator" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rt_eskalator" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Kapasitas Area Parkir (kendaraan)</label>
+          <input type="number" id="sp_rt_parkir" min="0" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Estimasi Jam/Hari Kunjungan Tersibuk (potensi evakuasi massal)</label>
+        <input type="text" id="sp_rt_ramai" placeholder="Contoh: akhir pekan sore hari, jam makan siang">
+      </div>
+    </div>
+
+    <!-- HOTEL -->
+    <div class="occ-block hidden" id="sp-hotel">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Pertanyaan Khusus Hotel / Resort</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Jumlah Kamar & Lantai</label>
+          <input type="text" id="sp_ht_kamar" placeholder="Contoh: 120 kamar, 8 lantai">
+        </div>
+        <div class="form-group">
+          <label>Ada Dapur Komersial (Central Kitchen)?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_ht_dapur" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_ht_dapur" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Jika ada dapur, apakah ada exhaust hood & sistem pemadam khusus dapur?</label>
+        <div class="radio-grid cols-2">
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_ht_hood" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+          <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_ht_hood" value="no"><div class="rc-text"><span class="rc-label">Tidak ada / N/A</span></div></label>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Sumber Gas untuk Dapur</label>
+          <select id="sp_ht_gas"><option value="">— pilih —</option><option value="lpg_tabung">LPG tabung per unit</option><option value="lpg_sentral">Tangki LPG sentral</option><option value="gas_kota">Gas kota / PGN</option><option value="none">Tidak menggunakan gas</option></select>
+        </div>
+        <div class="form-group">
+          <label>Emergency Lighting & Signage di Koridor Kamar Berfungsi?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_ht_lighting" value="yes"><div class="rc-text"><span class="rc-label">Berfungsi</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_ht_lighting" value="no"><div class="rc-text"><span class="rc-label">Tidak berfungsi</span></div></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KESEHATAN -->
+    <div class="occ-block hidden" id="sp-kesehatan">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Pertanyaan Khusus Rumah Sakit / Klinik</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Jumlah Tempat Tidur</label>
+          <input type="number" id="sp_rs_bed" min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Ada Sistem Gas Medis / Oksigen Sentral?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rs_oksigen" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rs_oksigen" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Ada Genset Backup untuk Ruang Operasi/ICU?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rs_genset" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rs_genset" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ada Ruang Radiologi (X-Ray/CT) dengan Proteksi Khusus?</label>
+          <div class="radio-grid cols-2">
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rs_radiologi" value="yes"><div class="rc-text"><span class="rc-label">Ada</span></div></label>
+            <label class="radio-card" onclick="selectRadio(this)"><input type="radio" name="sp_rs_radiologi" value="no"><div class="rc-text"><span class="rc-label">Tidak ada</span></div></label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Penanganan Limbah Medis</label>
+        <input type="text" id="sp_rs_limbah" placeholder="Contoh: pihak ketiga berizin, insinerator sendiri">
+      </div>
+    </div>
+
+    <!-- LAINNYA -->
+    <div class="occ-block hidden" id="sp-lainnya">
+      <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">Okupansi Lainnya</div>
+      <div class="tip-box warn">Jenis okupansi ini belum memiliki checklist khusus di prototipe ini. Isi deskripsi manual di bawah — daftar pertanyaan spesifiknya perlu didiskusikan dan ditambahkan bersama tim Risk Engineering.</div>
+      <div class="form-group">
+        <label>Deskripsi Jenis Usaha & Hal Khusus yang Perlu Diperhatikan</label>
+        <textarea id="sp_lainnya_desc" placeholder="Jelaskan jenis usaha dan risiko spesifiknya..."></textarea>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- SECTION 3: UPLOAD DOKUMEN -->
+<div class="section-card hidden" id="sec3">
+  <div class="sec-hdr" style="background:var(--orange)">
+    <span class="sec-hdr-icon">📎</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Upload Dokumen & Foto</div>
+      <div class="sec-hdr-sub">Lampiran pendukung hasil survey lapangan</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tip-box">📌 Prototipe ini menampilkan pratinjau file di browser. Untuk versi produksi, file perlu diunggah ke server/cloud storage — ini bagian yang perlu didiskusikan arsitekturnya dengan tim IT.</div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">📷 Foto Bangunan</div>
+    <div class="form-group">
+      <label>Tampak Depan, Samping, Dalam, dll.</label>
+      <input type="file" id="up_foto" accept="image/*" multiple onchange="handleUpload(this,'up_foto_list')">
+      <div class="hint">Bisa pilih beberapa foto sekaligus</div>
+    </div>
+    <div class="upload-preview" id="up_foto_list"></div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">🗺️ Denah / Layout Bangunan</div>
+    <div class="form-group">
+      <label>Denah lokasi, layout gudang/pabrik, dsb.</label>
+      <input type="file" id="up_denah" accept="image/*,.pdf" multiple onchange="handleUpload(this,'up_denah_list')">
+    </div>
+    <div class="upload-preview" id="up_denah_list"></div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--navy)">📄 Dokumen Legal & Pendukung</div>
+    <div class="form-group">
+      <label>IMB/PBG, Sertifikat, Izin Usaha, Laporan Klaim Sebelumnya, dll.</label>
+      <input type="file" id="up_legal" accept=".pdf,.doc,.docx,image/*" multiple onchange="handleUpload(this,'up_legal_list')">
+    </div>
+    <div class="upload-preview" id="up_legal_list"></div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label>Catatan Terkait Dokumen / Foto</label>
+      <textarea id="up_notes" placeholder="Contoh: foto ruang genset belum tersedia, menyusul dari PIC lokasi..."></textarea>
+    </div>
+  </div>
+</div>
+
+
+<!-- SECTION 4: MANAGEMENT -->
+<div class="section-card hidden" id="sec4">
+  <div class="sec-hdr" style="background:var(--navy)">
+    <span class="sec-hdr-icon">👔</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Management</div>
+      <div class="sec-hdr-sub">Penilaian manajemen risiko — Bobot Kategori I | Max: Good (8)</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tip-box">📌 Checklist kondisi yang <strong>terpenuhi</strong> saat survey. Lebih banyak terpenuhi = rating lebih baik.</div>
+    
+    <div style="margin-top:16px">
+      <div class="check-item"><input type="checkbox" id="m1"><label for="m1">Kebersihan dan kerapihan — Lokasi terlihat bersih dan rapi secara visual</label></div>
+      <div class="check-item"><input type="checkbox" id="m2"><label for="m2">Aturan merokok — Ada larangan merokok, tidak nampak puntung rokok di area berisiko</label></div>
+      <div class="check-item"><input type="checkbox" id="m3"><label for="m3">Pelatihan kebakaran — Diadakan minimal 1x per tahun, ada bukti/dokumentasi</label></div>
+      <div class="check-item"><input type="checkbox" id="m4"><label for="m4">Perawatan rutin — Ada program perawatan bangunan, listrik, dan mesin secara berkala</label></div>
+      <div class="check-item"><input type="checkbox" id="m5"><label for="m5">Housekeeping baik — Tidak ada penumpukan sampah/material di area berbahaya</label></div>
+      <div class="check-item"><input type="checkbox" id="m6"><label for="m6">K3 terpenuhi — Ada rambu keselamatan, APD tersedia, jalur evakuasi jelas</label></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label>Riwayat klaim dalam 5 tahun terakhir <span class="req">*</span></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_klaim" value="0" data-credit="0">
+          <div class="rc-text"><span class="rc-label">0 klaim</span><span class="rc-score score-good">Tidak ada penalti</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_klaim" value="1-2" data-credit="-1">
+          <div class="rc-text"><span class="rc-label">1–2 klaim</span><span class="rc-score score-avg">Perhatian</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_klaim" value="3+" data-credit="-2">
+          <div class="rc-text"><span class="rc-label">≥ 3 klaim</span><span class="rc-score score-marg">Penalti turun 1 tingkat</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Risk improvement atas klaim sebelumnya</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_improvement" value="yes" data-credit="1">
+          <div class="rc-text"><span class="rc-label">✅ Sudah dilakukan</span><span class="rc-score score-good">Kredit naik 1 tingkat</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_improvement" value="no" data-credit="0">
+          <div class="rc-text"><span class="rc-label">❌ Belum / Tidak ada klaim</span><span class="rc-score score-avg">Tidak ada kredit</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>> 50% rekomendasi Aswata telah dijalankan?</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_rekomendasi" value="yes" data-credit="1">
+          <div class="rc-text"><span class="rc-label">✅ Ya</span><span class="rc-score score-good">Kredit naik 1 tingkat</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="m_rekomendasi" value="no" data-credit="0">
+          <div class="rc-text"><span class="rc-label">❌ Tidak / Belum ada rekomendasi</span><span class="rc-score score-avg">Tidak ada kredit</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Catatan Management</label>
+      <textarea id="m_notes" placeholder="Catatan tambahan terkait manajemen risiko..."></textarea>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 5: CONSTRUCTION -->
+<div class="section-card hidden" id="sec5">
+  <div class="sec-hdr" style="background:var(--blue)">
+    <span class="sec-hdr-icon">🏗️</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Construction</div>
+      <div class="sec-hdr-sub">Penilaian konstruksi bangunan — Bobot Kategori I</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="form-group">
+      <label>Kelas Konstruksi Bangunan <span class="req">*</span></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_kelas" value="8">
+          <div class="rc-text">
+            <span class="rc-label">Kelas 1 — Permanen</span>
+            <span class="rc-desc">Beton/bata penuh, atap beton/genteng</span>
+            <span class="rc-score score-good">Good (8)</span>
+          </div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_kelas" value="6">
+          <div class="rc-text">
+            <span class="rc-label">Kelas 2 — Semi Permanen</span>
+            <span class="rc-desc">Campuran beton & material ringan</span>
+            <span class="rc-score score-avg">Average (6)</span>
+          </div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_kelas" value="4">
+          <div class="rc-text">
+            <span class="rc-label">Kelas 3 — Non Permanen</span>
+            <span class="rc-desc">Kayu, rangka baja ringan, material mudah terbakar</span>
+            <span class="rc-score score-marg">Marginal (4)</span>
+          </div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_kelas" value="2">
+          <div class="rc-text">
+            <span class="rc-label">Kelas 3 — Kondisi Buruk</span>
+            <span class="rc-desc">Material tidak layak, kondisi rusak parah</span>
+            <span class="rc-score score-marg">Poor (2)</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Jumlah Lantai <span class="req">*</span></label>
+        <input type="number" id="c_lantai" min="1" max="100" placeholder="Jumlah lantai">
+        <div class="hint">Bangunan > 6 lantai = High Rise, checklist tambahan diperlukan</div>
+      </div>
+      <div class="form-group">
+        <label>Luas Bangunan (m²)</label>
+        <input type="number" id="c_luas" min="0" placeholder="Luas total">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tahun Dibangun</label>
+      <input type="number" id="c_tahun" min="1900" max="2025" placeholder="Contoh: 2010">
+    </div>
+
+    <div class="form-group">
+      <label>Apakah menggunakan Combustible Sandwich Panel > 30% floor area?</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_sandwich" value="no">
+          <div class="rc-text"><span class="rc-label">Tidak</span><span class="rc-score score-good">Tidak ada penalti</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_sandwich" value="yes">
+          <div class="rc-text"><span class="rc-label">Ya</span><span class="rc-score score-marg">Penalti turun 1 tingkat</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Apakah menggunakan Combustible ACP (Aluminium Composite Panel) > 30% surface area?</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_acp" value="no">
+          <div class="rc-text"><span class="rc-label">Tidak</span><span class="rc-score score-good">Tidak ada penalti</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="c_acp" value="yes">
+          <div class="rc-text"><span class="rc-label">Ya</span><span class="rc-score score-marg">Penalti turun 1 tingkat</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Catatan Konstruksi</label>
+      <textarea id="c_notes" placeholder="Catatan kondisi bangunan, kerusakan, atau hal penting lainnya..."></textarea>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 6: OCCUPANCY -->
+<div class="section-card hidden" id="sec6">
+  <div class="sec-hdr" style="background:var(--navy)">
+    <span class="sec-hdr-icon">🏭</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Occupancy</div>
+      <div class="sec-hdr-sub">Penilaian aktivitas di lokasi risiko — Bobot Kategori I</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="form-group">
+      <label>Kategori Hazard Risk Okupansi <span class="req">*</span></label>
+      <div class="radio-grid">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_hazard" value="8">
+          <div class="rc-text"><span class="rc-label">Low Hazard Non-Industrial</span><span class="rc-desc">Perkantoran, hotel, sekolah, RS, pertokoan (LHR-NI)</span><span class="rc-score score-good">Good (8)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_hazard" value="6a">
+          <div class="rc-text"><span class="rc-label">Low Hazard Industrial</span><span class="rc-desc">Manufaktur ringan, non-hazardous process/stock (LHR-I)</span><span class="rc-score score-avg">Average (6)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_hazard" value="6b">
+          <div class="rc-text"><span class="rc-label">Medium Hazard — Warehouse 29371</span><span class="rc-desc">Gudang dengan kode OJK 29371</span><span class="rc-score score-avg">Average (6)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_hazard" value="4a">
+          <div class="rc-text"><span class="rc-label">Warehouse (selain 29371)</span><span class="rc-desc">Gudang umum selain kode 29371</span><span class="rc-score score-marg">Marginal (4)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_hazard" value="4b">
+          <div class="rc-text"><span class="rc-label">High Hazard Risk</span><span class="rc-desc">MHR-1/2/3, proses/stok berbahaya, flammable</span><span class="rc-score score-marg">Marginal (4)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_hazard" value="4c">
+          <div class="rc-text"><span class="rc-label">Energy Hazard Risk</span><span class="rc-desc">Pertambangan, oil & gas, power plant, petrochemical</span><span class="rc-score score-marg">Marginal (4)</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Deskripsi aktivitas utama di lokasi <span class="req">*</span></label>
+      <textarea id="o_aktivitas" placeholder="Jelaskan aktivitas utama, proses produksi, jenis stok/inventori, dll."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Penyimpanan / penggunaan bahan kimia berbahaya</label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_kimia" value="none">
+          <div class="rc-text"><span class="rc-label">Tidak ada</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_kimia" value="small">
+          <div class="rc-text"><span class="rc-label">Ada — jumlah kecil</span><span class="rc-desc">Tersimpan dengan SOP yang baik</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_kimia" value="large">
+          <div class="rc-text"><span class="rc-label">Ada — jumlah besar</span><span class="rc-score score-marg">Perlu perhatian khusus</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Apakah ada dapur / kitchen (Restaurant, Hotel, Central Kitchen)?</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_dapur" value="no">
+          <div class="rc-text"><span class="rc-label">Tidak ada</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_dapur" value="yes">
+          <div class="rc-text"><span class="rc-label">Ada</span><span class="rc-desc">Wajib foto: kitchen hood, duct, LPG</span><span class="rc-score score-avg">Perlu checklist tambahan</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Apakah ada Forklift listrik yang diisi baterai di dalam gedung?</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_forklift" value="no">
+          <div class="rc-text"><span class="rc-label">Tidak ada</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="o_forklift" value="yes">
+          <div class="rc-text"><span class="rc-label">Ada</span><span class="rc-score score-marg">Risiko kebakaran baterai</span></div>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 7: PROTECTION -->
+<div class="section-card hidden" id="sec7">
+  <div class="sec-hdr" style="background:var(--red)">
+    <span class="sec-hdr-icon">🔥</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Protection — Proteksi Kebakaran</div>
+      <div class="sec-hdr-sub">Ketersediaan dan kondisi sistem proteksi kebakaran — Bobot Kategori I</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tip-box">📌 Penilaian berdasarkan ketersediaan DAN kondisi fungsional. Alat yang ada tapi tidak berfungsi = penalti turun 1 tingkat.</div>
+
+    <div class="form-group" style="margin-top:16px">
+      <label>APAR — Alat Pemadam Api Ringan <span class="req">*</span> <small style="color:var(--gray3)">(Bobot 0.2)</small></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_apar" value="good">
+          <div class="rc-text"><span class="rc-label">Ada & Fungsional</span><span class="rc-desc">Jumlah cukup, tidak kadaluarsa, mudah diakses</span><span class="rc-score score-good">Average (6) max</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_apar" value="avg">
+          <div class="rc-text"><span class="rc-label">Ada, ada catatan</span><span class="rc-desc">Jumlah kurang / ada yg kadaluarsa</span><span class="rc-score score-avg">Penalti -1 tingkat</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_apar" value="none">
+          <div class="rc-text"><span class="rc-label">Tidak Ada</span><span class="rc-score score-marg">Marginal/Poor</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Hidran — Unit Boks / Pillar Hidran <span class="req">*</span> <small style="color:var(--gray3)">(Bobot 0.3)</small></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_hidran" value="good">
+          <div class="rc-text"><span class="rc-label">Ada & Fungsional</span><span class="rc-desc">Tekanan air cukup, akses baik</span><span class="rc-score score-good">Good (8)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_hidran" value="avg">
+          <div class="rc-text"><span class="rc-label">Ada, ada catatan</span><span class="rc-score score-avg">Penalti -1 tingkat</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_hidran" value="none">
+          <div class="rc-text"><span class="rc-label">Tidak Ada</span><span class="rc-score score-marg">Marginal/Poor</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Detektor Kebakaran Otomatis <span class="req">*</span> <small style="color:var(--gray3)">(Bobot 0.25 — Smoke/Heat/Flame Detector)</small></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_detektor" value="good">
+          <div class="rc-text"><span class="rc-label">Ada & Fungsional</span><span class="rc-score score-good">Good (8)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_detektor" value="avg">
+          <div class="rc-text"><span class="rc-label">Ada, ada catatan</span><span class="rc-score score-avg">Penalti -1 tingkat</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_detektor" value="none">
+          <div class="rc-text"><span class="rc-label">Tidak Ada</span><span class="rc-score score-marg">Marginal/Poor</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Sprinkler <span class="req">*</span> <small style="color:var(--gray3)">(Bobot 0.15)</small></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_sprinkler" value="good">
+          <div class="rc-text"><span class="rc-label">Ada & Fungsional</span><span class="rc-score score-good">Good (8)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_sprinkler" value="avg">
+          <div class="rc-text"><span class="rc-label">Ada, ada catatan</span><span class="rc-score score-avg">Penalti -1 tingkat</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_sprinkler" value="none">
+          <div class="rc-text"><span class="rc-label">Tidak Ada</span><span class="rc-score score-marg">Marginal/Poor</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Pemadam Kebakaran Publik — Estimasi Respons Time <span class="req">*</span> <small style="color:var(--gray3)">(Bobot 0.1)</small></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_damkar" value="8">
+          <div class="rc-text"><span class="rc-label">< 10 menit</span><span class="rc-score score-good">Good (8)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_damkar" value="6">
+          <div class="rc-text"><span class="rc-label">10–20 menit</span><span class="rc-score score-avg">Average (6)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_damkar" value="4">
+          <div class="rc-text"><span class="rc-label">21–30 menit</span><span class="rc-score score-marg">Marginal (4)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="p_damkar" value="2">
+          <div class="rc-text"><span class="rc-label">> 30 menit</span><span class="rc-score score-marg">Poor (2)</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Catatan kondisi proteksi kebakaran</label>
+      <textarea id="p_notes" placeholder="Catatan kondisi APAR, hidran, sprinkler, atau rekomendasi perbaikan..."></textarea>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 8: EXPOSURE -->
+<div class="section-card hidden" id="sec8">
+  <div class="sec-hdr" style="background:var(--navy2)">
+    <span class="sec-hdr-icon">🌍</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Exposure</div>
+      <div class="sec-hdr-sub">Penilaian eksposur dari lingkungan sekitar — Bobot Kategori II | Max: Good (4)</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="form-group">
+      <label>Kondisi fasilitas di sekitar bangunan tertanggung <span class="req">*</span></label>
+      <div class="radio-grid">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="ex_kondisi" value="4">
+          <div class="rc-text"><span class="rc-label">Tidak ada fasilitas lain di sekitar</span><span class="rc-desc">Berdiri sendiri, tidak ada risiko dari lingkungan</span><span class="rc-score score-good">Good (4)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="ex_kondisi" value="3">
+          <div class="rc-text"><span class="rc-label">Jarak memadai dengan fasilitas sekitar</span><span class="rc-desc">Ada bangunan lain tapi jarak cukup, risiko terkelola</span><span class="rc-score score-avg">Average (3)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="ex_kondisi" value="2">
+          <div class="rc-text"><span class="rc-label">Jarak tidak memadai</span><span class="rc-desc">Berdempetan dengan bangunan lain, potensi fire spread</span><span class="rc-score score-marg">Marginal (2)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="ex_kondisi" value="1">
+          <div class="rc-text"><span class="rc-label">Jarak tidak memadai + High/Energy Hazard di sekitar</span><span class="rc-desc">Risiko sangat tinggi dari lingkungan sekitar</span><span class="rc-score score-marg">Poor (1)</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Deskripsi fasilitas / bangunan di sekitar</label>
+      <textarea id="ex_desc" placeholder="Contoh: Di sebelah kiri ada SPBU berjarak ±50m, sebelah kanan gudang cat berjarak ±20m..."></textarea>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 9: NATURAL HAZARDS -->
+<div class="section-card hidden" id="sec9">
+  <div class="sec-hdr" style="background:var(--navy2)">
+    <span class="sec-hdr-icon">🌋</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Natural Hazards</div>
+      <div class="sec-hdr-sub">Penilaian risiko bencana alam — Max: Average (3) | kecuali ada catatan khusus</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="tip-box">📌 Default Natural Hazards = Average. Turun menjadi Marginal/Poor jika ada kondisi yang menunjukkan risiko tinggi.</div>
+
+    <div class="form-group" style="margin-top:12px">
+      <label>Risiko Gempa Bumi (Earthquake) <span class="req">*</span></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_gempa" value="avg">
+          <div class="rc-text"><span class="rc-label">Max MMI VII atau kurang</span><span class="rc-desc">Zona risiko rendah-menengah</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_gempa" value="marg">
+          <div class="rc-text"><span class="rc-label">MMI VIII atau lebih</span><span class="rc-desc">Zona risiko gempa tinggi</span><span class="rc-score score-marg">Marginal — High Risk</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Risiko Tsunami <span class="req">*</span></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_tsunami" value="avg">
+          <div class="rc-text"><span class="rc-label">Tidak di area return period tsunami</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_tsunami" value="marg">
+          <div class="rc-text"><span class="rc-label">Berada di area return period tsunami</span><span class="rc-score score-marg">Marginal</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Risiko Petir (Lightning) <span class="req">*</span></label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_petir" value="avg_low">
+          <div class="rc-text"><span class="rc-label">IKL Rendah (< 40)</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_petir" value="avg_high">
+          <div class="rc-text"><span class="rc-label">IKL Tinggi (≥ 40) + Ada Lightning Arrester</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_petir" value="marg">
+          <div class="rc-text"><span class="rc-label">IKL Tinggi (≥ 40) + Tanpa Lightning Arrester</span><span class="rc-score score-marg">Marginal</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Risiko Banjir (Flood) <span class="req">*</span></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_banjir" value="avg">
+          <div class="rc-text"><span class="rc-label">Return period ≥ 200 tahun</span><span class="rc-desc">Elevasi lebih tinggi, jarak ≥ 15m dari sungai</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_banjir" value="marg">
+          <div class="rc-text"><span class="rc-label">Return period < 200 tahun / dekat sungai</span><span class="rc-desc">Rawan banjir atau elevasi rendah</span><span class="rc-score score-marg">Marginal</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Risiko Longsor (Landslide) <span class="req">*</span></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_longsor" value="avg">
+          <div class="rc-text"><span class="rc-label">Tanah datar, kemiringan ≤ 20°</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_longsor" value="marg">
+          <div class="rc-text"><span class="rc-label">Kemiringan > 20° atau area rawan longsor</span><span class="rc-score score-marg">Marginal</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Riwayat Bencana Alam (NatCat Loss) di lokasi ini</label>
+      <div class="radio-grid cols-3">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_history" value="none">
+          <div class="rc-text"><span class="rc-label">Tidak ada riwayat</span><span class="rc-score score-avg">Average</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_history" value="improved">
+          <div class="rc-text"><span class="rc-label">Ada + Sudah ada risk improvement</span><span class="rc-score score-marg">Marginal</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="nh_history" value="none_improved">
+          <div class="rc-text"><span class="rc-label">Ada + Belum ada improvement</span><span class="rc-score score-marg">Poor</span></div>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 10: LOSS ESTIMATE -->
+<div class="section-card hidden" id="sec10">
+  <div class="sec-hdr" style="background:var(--navy)">
+    <span class="sec-hdr-icon">💰</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Loss Estimate & Other Perils</div>
+      <div class="sec-hdr-sub">Estimasi kerugian maksimal & risiko khusus lainnya — Bobot Kategori III & II</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div class="form-group">
+      <label>Estimasi Maximum Foreseeable Loss (MFL) — Property Damage <span class="req">*</span></label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="le_mfl" value="7">
+          <div class="rc-text"><span class="rc-label">< 25% nilai pertanggungan</span><span class="rc-score score-good">Excellent (7)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="le_mfl" value="7b">
+          <div class="rc-text"><span class="rc-label">25–50% nilai pertanggungan</span><span class="rc-score score-good">Good (7)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="le_mfl" value="5">
+          <div class="rc-text"><span class="rc-label">51–75% nilai pertanggungan</span><span class="rc-score score-avg">Average (5)</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="le_mfl" value="3">
+          <div class="rc-text"><span class="rc-label">75–100% nilai pertanggungan</span><span class="rc-score score-marg">Marginal (3)</span></div>
+        </label>
+      </div>
+      <div class="tip-box">💡 MFL = estimasi kerugian properti jika terjadi kebakaran besar. Pertimbangkan kondisi bangunan, proteksi, dan pemisahan area.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label>Other Perils — Apakah ada risiko khusus lain?</label>
+      <div class="radio-grid cols-2">
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="op_ada" value="no">
+          <div class="rc-text"><span class="rc-label">Tidak ada catatan khusus</span><span class="rc-score score-avg">Average (3) — default</span></div>
+        </label>
+        <label class="radio-card" onclick="selectRadio(this)">
+          <input type="radio" name="op_ada" value="yes">
+          <div class="rc-text"><span class="rc-label">Ada catatan khusus</span><span class="rc-desc">Pencurian, kerusuhan, sabotase, dll</span></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Jika ada, jelaskan risiko khusus tersebut</label>
+      <textarea id="op_notes" placeholder="Deskripsi risiko khusus lainnya..."></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="margin-bottom:8px;font-size:12px;font-weight:600;color:var(--dark)">Riwayat Klaim (Loss History)</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Jumlah klaim 5 tahun terakhir</label>
+        <input type="number" id="lh_jumlah" min="0" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Total nilai klaim (Rp)</label>
+        <input type="number" id="lh_nilai" min="0" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Catatan tambahan surveyor</label>
+      <textarea id="final_notes" placeholder="Rekomendasi perbaikan, temuan penting, hal-hal yang perlu diperhatikan underwriter..."></textarea>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SECTION 11: HASIL -->
+<div class="section-card hidden" id="sec11">
+  <div class="sec-hdr" style="background:var(--green)">
+    <span class="sec-hdr-icon">📊</span>
+    <div class="sec-hdr-text">
+      <div class="sec-hdr-title">Hasil Risk Grading</div>
+      <div class="sec-hdr-sub">Kalkulasi otomatis berdasarkan input surveyor</div>
+    </div>
+  </div>
+  <div class="sec-body">
+    <div id="result-summary"></div>
+
+    <div class="divider"></div>
+
+    <table class="score-tbl" id="score-detail">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Kategori</th>
+          <th>Bobot</th>
+          <th>Rating</th>
+          <th>Skor</th>
+        </tr>
+      </thead>
+      <tbody id="score-rows"></tbody>
+    </table>
+
+    <div class="tip-box" style="margin-top:16px">
+      <strong>Skala Penilaian:</strong><br>
+      46–55 poin = <strong>GOOD</strong> ✅ | 31–45 poin = <strong>AVERAGE</strong> ⚠️ | 21–30 poin = <strong>MARGINAL</strong> 🔴 | ≤ 20 poin = <strong>POOR</strong> ❌
+    </div>
+
+    <div class="btn-wrap" style="justify-content:center;margin-top:20px">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak Hasil</button>
+      <button class="btn btn-success" onclick="alert('Fitur simpan ke Google Sheets akan diaktifkan setelah integrasi Apps Script!')">💾 Simpan ke Sistem</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- NAV BUTTONS -->
+<div class="btn-wrap" id="nav-btns">
+  <button class="btn btn-secondary" id="btn-prev" onclick="prevSec()" style="display:none">← Sebelumnya</button>
+  <button class="btn btn-primary" id="btn-next" onclick="nextSec()">Selanjutnya →</button>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// OJK DATA
+const OJK_DATA = [{"code": "200", "desc": "Mining (underground or above ground) of precious metal (Gold, Silver, Platinum and other precious me", "cat": "Energy Risk"}, {"code": "201", "desc": "Mining (underground or above ground) of Aluminium including Smelting and Refinery", "cat": "Energy Risk"}, {"code": "2020", "desc": "Iron Mines (underground or above ground)", "cat": "Energy Risk"}, {"code": "2021", "desc": "Blast Furnaces and Iron Foundries, kegiatan pengubahan seperti reduksi bijih besi dalam tungku pemba", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "203", "desc": "Steelworks and Rolling Mills, termasuk juga pembuatan besi dan baja paduan. Termasuk kegiatan tungku", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2041", "desc": "Exploration and Production for Crude Petroleum, on shore only", "cat": "Energy Risk"}, {"code": "2042", "desc": "Crude Petroleum Pipe Lines including pump station, on shore only", "cat": "Energy Risk"}, {"code": "2043", "desc": "Exploration and Production for Natural gas and geothermal, on shore", "cat": "Energy Risk"}, {"code": "2044", "desc": "Natural Gas Transmission and distribution including geothermal (including pipelines and pump station", "cat": "Energy Risk"}, {"code": "2045", "desc": "Terminal for crude oil", "cat": "Energy Risk"}, {"code": "2046", "desc": "Terminals for Liquefied Gases", "cat": "Energy Risk"}, {"code": "2047", "desc": "Other petroleum and gas products", "cat": "Energy Risk"}, {"code": "2048", "desc": "Degasification Stations", "cat": "Energy Risk"}, {"code": "2049", "desc": "Off shore Facilities", "cat": "Energy Risk"}, {"code": "2051", "desc": "Extraction and Processing above Ground", "cat": "Energy Risk"}, {"code": "2052", "desc": "Extraction and Processing below Ground", "cat": "Energy Risk"}, {"code": "2058", "desc": "Other and /or Mixed", "cat": "Energy Risk"}, {"code": "206", "desc": "Foundries , Reduction Plants (Smelting and Refinery) for Metals (Excluding Iron, Alumunium and Preci", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2071", "desc": "Extraction and Processing of Coal and Lignite above Ground (surface)", "cat": "Energy Risk"}, {"code": "2072", "desc": "Extraction and Processing of Coal and Lignite below Ground", "cat": "Energy Risk"}, {"code": "2073", "desc": "Coal Coking Plants (kokas)", "cat": "Energy Risk"}, {"code": "2074", "desc": "Manufacturing of Coal Briquettes", "cat": "Energy Risk"}, {"code": "2081", "desc": "Salt mines, extraction from rock or evaporated deposit", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "2082", "desc": "Salt extraction from sea water (tambak garam)", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "209", "desc": "Peat extraction, Peat processing", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "210", "desc": "Stone, gravel and sand extraction installations", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "21121", "desc": "Cement Factories with rotary kiln", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "21122", "desc": "Cement Factories without rotary kiln", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2113", "desc": "Concrete product, Ready Mixed Concrete, Unfired Stoneware, Industri  beton, barang-barang dari batu ", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2114", "desc": "Artificial Teeth, non plastic", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2121", "desc": "Asbestos products, Cut stone and stone products", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "2122", "desc": "Animal Bones and/or shell crushing for feed", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "2123", "desc": "Mineral Wool", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "2131", "desc": "Factories which only have Tunnel Kilns", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2132", "desc": "Factories which other types of Kilns", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2133", "desc": "Ceramic Color, Ceramic Frit, Glass Enamel Color, Inorganic Pigments", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2141", "desc": "Factories which only have Tunnel Kilns", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2142", "desc": "Factories with other kiln", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2151", "desc": "Glass container, Pressed and Blown Glass and Glassware", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2152", "desc": "Flat Glass including tempered", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2158", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "216", "desc": "Glass Products Made of Purchased Glass, lenses, safety glass, mirror", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "217", "desc": "Precious stone workshops and processing plant", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "218", "desc": "Emery and abrasive materials factories", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "219", "desc": "Tarcoated chippings manufacture, asphalt and roofing felt factories, Asphalt Goods", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2201", "desc": "Sheet rolling mills and foil making plants, forging works, locksmiths, constructional metal works, i", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2202", "desc": "Metal product from metal powder, industri penempaan, pengepresan, pencetakan dan pembentukan logam d", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2203", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "22111", "desc": "Industrial, Mining and Commercial Machinery, without melting of metal", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "22112", "desc": "Industrial, Mining and Commercial Machinery with melting of metal", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2212", "desc": "Metal Coating Services (enameling, zincing, galvanizing, anodizing)", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2213", "desc": "Coating Processes Using Flammable Materials including dipping and spray painting services", "cat": "MHR-3 (Flammable)"}, {"code": "2214", "desc": "Metal/Steel Furniture factories (where plastic and foam is utilized) plastic cupboards and foldable ", "cat": "High Risk"}, {"code": "2215", "desc": "Metal / Steel Spring Mattresses Manufacturing (without foam)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2218", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2221", "desc": "Manufacture assembly and repair of electrical machines and apparatus", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2222", "desc": "Wet and dry battery factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2223", "desc": "Manufacture of measuring equipment photographic apparatus precision instrument, and scientific labor", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2228", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2231", "desc": "Wire factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2232", "desc": "Cable factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2233", "desc": "Nails, screws, bolts and nuts factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2238", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2241", "desc": "Vehicle construction plants including bicycle and becak (three wheels)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2242", "desc": "Construction of railway carriages and locomotives", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2243", "desc": "Aircraft construction plants", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2244", "desc": "Ship construction, naval shipyards", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2245", "desc": "Vehicle assembling plants", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2248", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2251", "desc": "Manufacture and or assembly of telecommunication apparatus", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2252", "desc": "Manufacture and or assembly of computer apparatus", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2253", "desc": "Manufacture of Integrated Circuit (IC) from Chips", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2261", "desc": "Radio and television receiver factories and or assembling plants, audio video recorder and or player", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2262", "desc": "Factories of parts for radio and television receivers, audio and audio-video recorders and players", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "227", "desc": "Light Bulb Factories, Manufacture of Electronic Tubes and Fluorescent Tubes, Neon Signs, LED", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "228", "desc": "Watches and clocks and their component parts factories", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "2299", "desc": "Other industries in main category 22", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "230011", "desc": "General Chemical Products Factories flammable, including biofuel from vegetable oil and oleochemical", "cat": "MHR-3 (Flammable)"}, {"code": "230012", "desc": "General Chemical Products Factories non flammable", "cat": "MHR-1 (Non hazardous process/stock)"}, {"code": "23002", "desc": "Pharmaceutical Products Factories and Medicated Plaster", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "23003", "desc": "Natural Drug (Jamu)", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "23004", "desc": "Pesticides and agricultural chemical", "cat": "MHR-3 (Flammable)"}, {"code": "230051", "desc": "Solvent base product", "cat": "High Risk"}, {"code": "230052", "desc": "Water base product", "cat": "High Risk"}, {"code": "23006", "desc": "Acid, Alkaline Factories", "cat": "MHR-3 (Flammable)"}, {"code": "23007", "desc": "Chlor - Alkali Electrolysis", "cat": "MHR-3 (Flammable)"}, {"code": "23008", "desc": "Air Separation Plants (production of Technical Gases,e.g. Oxygen, Nitrogen, Hydrogen)", "cat": "MHR-3 (Flammable)"}, {"code": "23009", "desc": "Peroxide Manufacture, Application and Storage", "cat": "MHR-3 (Flammable)"}, {"code": "23010", "desc": "Others than 23006 –\n23009", "cat": "MHR-3 (Flammable)"}, {"code": "230121", "desc": "Ink factories - solvent base", "cat": "MHR-3 (Flammable)"}, {"code": "230122", "desc": "Ink factories - water base", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2310", "desc": "Oil Refinery, establishments primarily engaged in producing gasoline, kerosene, distillate fuel oils", "cat": "MHR-3 (Flammable)"}, {"code": "23111", "desc": "Hydrogen Generation from Natural Gas, Refinery Gas, or Liquid", "cat": "MHR-3 (Flammable)"}, {"code": "23115", "desc": "Lubricating oils and greases by blending and compounding purchased materials including re- used oil ", "cat": "MHR-3 (Flammable)"}, {"code": "23241", "desc": "Ammonia Production and/or Urea Production", "cat": "Energy Risk"}, {"code": "23242", "desc": "Production of Melamine Powder/Melamine Crystal using Urea Solution and Ammonia Gas", "cat": "Energy Risk"}, {"code": "2325", "desc": "Synthetic rubber", "cat": "Energy Risk"}, {"code": "2326", "desc": "Liquefaction of natural gas", "cat": "Energy Risk"}, {"code": "2327", "desc": "Liquefaction of petroleum gases", "cat": "Energy Risk"}, {"code": "2328", "desc": "Petrol coke, soot, graphite", "cat": "Energy Risk"}, {"code": "2329", "desc": "Liquefaction and gasification of coal", "cat": "Energy Risk"}, {"code": "2331", "desc": "Crude Oil (non terminal)", "cat": "MHR-3 (Flammable)"}, {"code": "2332", "desc": "Oil Products in Tanks located in the Harbour Area (non terminal)", "cat": "MHR-3 (Flammable)"}, {"code": "2333", "desc": "Liquefied Gases (non terminal)", "cat": "MHR-3 (Flammable)"}, {"code": "2334", "desc": "Pipeline for chemical products", "cat": "MHR-3 (Flammable)"}, {"code": "2335", "desc": "Other liquid chemicals (e.g ammonia)", "cat": "MHR-3 (Flammable)"}, {"code": "2341", "desc": "Manufacture of Plastic product by extrusions, compression, transfer molding, injection molding, blow", "cat": "High Risk"}, {"code": "2342", "desc": "Manufacture and processing of foam and expanded plastics", "cat": "High Risk"}, {"code": "23431", "desc": "Using Inflammable / Combustible / Volatile Liquids and or Solids at anytime during the production pr", "cat": "High Risk"}, {"code": "23432", "desc": "Using Liquid Methanol, Water and Air in a continuous process to produce Formaldehyde Gas thence Form", "cat": "High Risk"}, {"code": "235", "desc": "Manufacture of Artificial Fibres (Petrochemical Feedstock Process), Establishments primarily engaged", "cat": "MHR-3 (Flammable)"}, {"code": "236", "desc": "Manufacture of film, photographic paper, magnetic tape and celluloid batch adhesive tape (selotip)", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2371", "desc": "Manufacture of soaps, detergents and polishes", "cat": "MHR-3 (Flammable)"}, {"code": "2372", "desc": "Manufacture of etheric oils, essences, perfumes and cosmetic products", "cat": "MHR-3 (Flammable)"}, {"code": "2373", "desc": "Manufacture of gelatine, non-synthetic adhesives, starches, candles and wax goods, natural resins", "cat": "MHR-3 (Flammable)"}, {"code": "23741", "desc": "water based", "cat": "MHR-1 (Non hazardous process/stock)"}, {"code": "23742", "desc": "solvent based", "cat": "MHR-3 (Flammable)"}, {"code": "2378", "desc": "Mixed", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "238", "desc": "Chemical fertilizer factories (conventional)", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2399", "desc": "Powder, Explosives, Matches and Firework Factories", "cat": "High Risk"}, {"code": "2401", "desc": "Spinning mills, Pre- spinning : Animal Fibres", "cat": "High Risk"}, {"code": "2402", "desc": "Spinning mills, Pre- spinning : Vegetable and cellulose fibres", "cat": "High Risk"}, {"code": "2403", "desc": "Spinning mills, Pre- spinning : Synthetic fibres (mechanical process)", "cat": "High Risk"}, {"code": "2408", "desc": "Spinning mills,Pre- spinning : Mixed", "cat": "High Risk"}, {"code": "241", "desc": "Weaving, pre-weaving process", "cat": "High Risk"}, {"code": "2411", "desc": "Weaving, Pre-Weaving Processes: Animal fibres", "cat": "High Risk"}, {"code": "2412", "desc": "Weaving, Pre-Weaving Processes: Vegetable and cellulose fibres", "cat": "High Risk"}, {"code": "2413", "desc": "Weaving, Pre-Weaving Processes: Synthetic fibres", "cat": "High Risk"}, {"code": "2418", "desc": "Weaving, Pre-Weaving Processes: Mixed", "cat": "High Risk"}, {"code": "2421", "desc": "Dressing and finishing processes : Animal Fibres", "cat": "High Risk"}, {"code": "2422", "desc": "Dressing and finishing processes : Vegetable and Cellulose Fibres", "cat": "High Risk"}, {"code": "2423", "desc": "Dressing and finishing processes : Synthetic Fibres", "cat": "High Risk"}, {"code": "2428", "desc": "Dressing and finishing processes : Mixed", "cat": "High Risk"}, {"code": "2431", "desc": "Mixed processes(spinning, weaving) :Animal fibres", "cat": "High Risk"}, {"code": "2432", "desc": "Mixed processes(spinning, weaving) : Vegetable and cellulose", "cat": "High Risk"}, {"code": "2433", "desc": "Mixed processes(spinning, weaving) : Synthetic fibres", "cat": "High Risk"}, {"code": "2438", "desc": "Mixed processes(spinning, weaving) : Mixed", "cat": "High Risk"}, {"code": "2441", "desc": "Processing of textile waste\n: Animal fibres", "cat": "High Risk"}, {"code": "2442", "desc": "Processing of textile waste\n: Vegetable and cellulose fibres", "cat": "High Risk"}, {"code": "2443", "desc": "Processing of textile waste\n: Synthetic fibres", "cat": "High Risk"}, {"code": "2448", "desc": "Processing of textile waste\n: Mixed", "cat": "High Risk"}, {"code": "2451", "desc": "Ropemakers, stringmakers and sackmakers", "cat": "High Risk"}, {"code": "2452", "desc": "Blanket waving mills and carpet manufacture", "cat": "High Risk"}, {"code": "2458", "desc": "Mixed", "cat": "High Risk"}, {"code": "2461", "desc": "Knitting mills, knitwear factories, stocking factories, hosiery mills, glove factories and lamp wick", "cat": "High Risk"}, {"code": "2462", "desc": "Clothing and underwear manufactures, sewing works, furriers, skin processing works, custom tailors (", "cat": "High Risk"}, {"code": "2463", "desc": "Umbrella factories, felt goods factories, lace factories, embroidery factories", "cat": "High Risk"}, {"code": "2464", "desc": "Batik Establishments", "cat": "High Risk"}, {"code": "2465", "desc": "Clothing, underwear, jacket, custom tailor and other garment product (konveksi) - small scale/home i", "cat": "High Risk"}, {"code": "2466", "desc": "Zipper Factories", "cat": "High Risk"}, {"code": "2468", "desc": "Mixed", "cat": "High Risk"}, {"code": "247", "desc": "Upholstery, cushion maker’s and saddler's workshops", "cat": "High Risk"}, {"code": "248", "desc": "Cotton wool and capoc factories", "cat": "High Risk"}, {"code": "2491", "desc": "Laundries and pressers", "cat": "High Risk"}, {"code": "2492", "desc": "Dry-(chemical) cleaning", "cat": "High Risk"}, {"code": "2493", "desc": "Cleaning of feathers and down", "cat": "High Risk"}, {"code": "2498", "desc": "Mixed", "cat": "High Risk"}, {"code": "2501", "desc": "Wood pulp and cellulose based on wood pulp", "cat": "High Risk"}, {"code": "2502", "desc": "Lino factories", "cat": "High Risk"}, {"code": "2508", "desc": "Mixed", "cat": "High Risk"}, {"code": "2511", "desc": "Paper manufacture", "cat": "High Risk"}, {"code": "2512", "desc": "Manufacture of cardboard and hardboard", "cat": "High Risk"}, {"code": "2518", "desc": "Mixed", "cat": "High Risk"}, {"code": "2521", "desc": "Carton Manufacture including corrugated paper product", "cat": "High Risk"}, {"code": "2522", "desc": "Paper goods and or carton goods factories", "cat": "High Risk"}, {"code": "2523", "desc": "Bookbinders", "cat": "High Risk"}, {"code": "2528", "desc": "Mixed", "cat": "High Risk"}, {"code": "2531", "desc": "Newspaper printers", "cat": "High Risk"}, {"code": "2532", "desc": "Other printers, art printing works, lithographers, sablon", "cat": "High Risk"}, {"code": "2533", "desc": "Typeplate workshops, block workshops", "cat": "High Risk"}, {"code": "2534", "desc": "Photogravure workshop", "cat": "High Risk"}, {"code": "2538", "desc": "Mixed", "cat": "High Risk"}, {"code": "254", "desc": "Coloured paper and/or wallpaper printing works", "cat": "High Risk"}, {"code": "255", "desc": "Straw and rush goods factories", "cat": "High Risk"}, {"code": "256", "desc": "Leather production and tanneries", "cat": "High Risk"}, {"code": "2571", "desc": "Leather", "cat": "High Risk"}, {"code": "2572", "desc": "Rubber and/or Canvas", "cat": "High Risk"}, {"code": "2578", "desc": "Other materials or mixture of above mentioned materials and other materials", "cat": "High Risk"}, {"code": "2581", "desc": "Leather goods factories", "cat": "High Risk"}, {"code": "2582", "desc": "Imitation leather goods factories", "cat": "High Risk"}, {"code": "2588", "desc": "Mixed", "cat": "High Risk"}, {"code": "2591", "desc": "Rubber goods factories (excluding foamed rubber)", "cat": "High Risk"}, {"code": "2592", "desc": "Foamed rubber factories", "cat": "High Risk"}, {"code": "2593", "desc": "Tyre factories, vulcanizing works rubber factories (non estate risks)", "cat": "High Risk"}, {"code": "25931", "desc": "Tyre Cord Manufacturers (using Tyre Yarn as basic Material)", "cat": "High Risk"}, {"code": "2594", "desc": "Remilling factories", "cat": "High Risk"}, {"code": "2595", "desc": "Smoke houses (rubber)", "cat": "High Risk"}, {"code": "2596", "desc": "Crumb Rubber Factories (natural and recycling)", "cat": "High Risk"}, {"code": "2598", "desc": "Mixed", "cat": "High Risk"}, {"code": "2601", "desc": "Sawmills, panglong (sawmills with manual manufacture only)", "cat": "High Risk"}, {"code": "2602", "desc": "Carpenter's shops, parquet factories sawing and cutting of firewood", "cat": "High Risk"}, {"code": "2603", "desc": "Wooden sport equipment", "cat": "High Risk"}, {"code": "2604", "desc": "Obat nyamuk bakar/mosquito coil factories", "cat": "High Risk"}, {"code": "2605", "desc": "Toothpick, chopsticks factories", "cat": "High Risk"}, {"code": "2606", "desc": "Rattan drying & peeling mills", "cat": "High Risk"}, {"code": "2608", "desc": "Mixed", "cat": "High Risk"}, {"code": "261", "desc": "Furniture manufacture, cabinet makers, wooden boat builders, bamboo, rattan and wooden carvings and ", "cat": "High Risk"}, {"code": "2621", "desc": "Manufacture of fibreboard, hardboard, Masonite", "cat": "High Risk"}, {"code": "2622", "desc": "manufacture of wood chipboard, particle board, pressed wood", "cat": "High Risk"}, {"code": "2623", "desc": "Manufacture of plywood (triplex, multiplex) and veneer and blackboard, laminboard, fancy flooring an", "cat": "High Risk"}, {"code": "2624", "desc": "Sirap factories", "cat": "High Risk"}, {"code": "2628", "desc": "Mixed", "cat": "High Risk"}, {"code": "263", "desc": "Turner's shop, coachbuilder's shop, pipes, walking-sticks and picture frame factories, pencil factor", "cat": "High Risk"}, {"code": "264", "desc": "Wicker - Work Factories (anyaman bambu)", "cat": "High Risk"}, {"code": "265", "desc": "Cork goods factories such as shuttle cock factories", "cat": "High Risk"}, {"code": "266", "desc": "Broom, brush and paintbrush factories", "cat": "High Risk"}, {"code": "267", "desc": "Timber impregnation installations, plywood coating installation", "cat": "High Risk"}, {"code": "268", "desc": "Wooden musical instruments factories", "cat": "High Risk"}, {"code": "269", "desc": "Charcoal producers and other industries in main category 26", "cat": "High Risk"}, {"code": "2701", "desc": "Corn mills", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2702", "desc": "Fodder mills", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2703", "desc": "Gaplek mills", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2704", "desc": "Gambir factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2705", "desc": "Flour Mills (tepung terigu, tepung tapioka, tepung sagu, tepung beras,\netc)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2708", "desc": "Mixed including feed mill", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2709", "desc": "Paddy & Hulling Mills", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27111", "desc": "sugar refinery plant", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27112", "desc": "Cane Sugar plant", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27113", "desc": "Chocolate and sweets factory", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "272", "desc": "Food paste producers, bakeries, processed food factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2721", "desc": "Alimentary Paste Producers (dried dough, pasta, macaroni, etc)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2722", "desc": "Bakeries and biscuit works", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2723", "desc": "Processed food factories (bihun, mie, lomie, kerupuk) and the like", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2728", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2731", "desc": "Preserves Factories (Jam, fruit canning, etc.), Pabrik sari gula Monosodium Glutamate (MSG ) Produce", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27321", "desc": "Combustible - Meat, meat products and fish products factories", "cat": "High Risk"}, {"code": "27322", "desc": "Non Combustible - Meat, meat products and fish products factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2733", "desc": "Soya bean, tomato and hot pepper sauce", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2734", "desc": "Poultry Farms", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2735", "desc": "Other farms", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2736", "desc": "Poultry Hatcheries", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2737", "desc": "Fish Hatcheries", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2741", "desc": "Edible fats producers", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2742", "desc": "Edible Oils Plants and Other Plants Producing Edible Palm Oil (CPO, PKO, CCO), cooking oil and marga", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27421", "desc": "Edible Oils Plants and Other Plants Producing Edible Palm Oil (CPO, PKO, CCO).", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27422", "desc": "Cooking oil and margarine from vegetable oil or Other Edible Oils or Desiccated Coconut", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2743", "desc": "Storage of crude palm oil (CPO) outside estates including storage of edible oils in tanks", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2748", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2751", "desc": "Dairies and Dairy Products, including fresh milk, UHT milk, yogurt, ice cream, cheese, butter, etc", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2752", "desc": "Powder milk", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2761", "desc": "Coffee roasting plants and other roasting plants, coffee extract factories, coffee sorting and peeli", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2762", "desc": "Malting", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2763", "desc": "Tea Sheds and Tea Factories, including herb drink (serbat, etc)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2768", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27111", "desc": "Cold Storage exclude Non Combustible Sandwich Panel Construction", "cat": "High Risk"}, {"code": "27112", "desc": "Cold Storage Non Combustible Sandwich Panel Construction", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2772", "desc": "Abbatoirs and Butchers, including slaughter house", "cat": "High"}, {"code": "2773", "desc": "Drying installations", "cat": "High"}, {"code": "2778", "desc": "Mixed", "cat": "High"}, {"code": "2781", "desc": "Breweries, beer factory", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2782", "desc": "Producers of wines, fruit juices and mineral water", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "27831", "desc": "Producers of Spirits and Liquors", "cat": "MHR-3 (Flammable)"}, {"code": "27832", "desc": "Distilleries producing Alcohol (Ethanol) for Nutrional Purposes from Non - Petrochemical Materials.\n", "cat": "MHR-3 (Flammable)"}, {"code": "2784", "desc": "Vinegar factories (Acid liquor) factories", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2788", "desc": "Mixed", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2790", "desc": "Tobacco, cigars and cigarettes manufacture", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2791", "desc": "Drying Sheds / Smoke Houses for tobacco leaves Drying Shed / Smoke House is a place for the drying p", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2792", "desc": "Oven, is a place for the drying process of a Tobacco leaves by using heating process", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2793", "desc": "Tobacco Establishement (Usaha Pengolahan Tembakau) is a Company with an activity to process a Tobacc", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2801", "desc": "Conventional hydro electric power station", "cat": "Energy Risk"}, {"code": "2802", "desc": "Micro hydro electric power station", "cat": "Energy Risk"}, {"code": "2811", "desc": "PLTU", "cat": "Energy Risk"}, {"code": "28111", "desc": "PLTU using steam boiler", "cat": "Energy Risk"}, {"code": "28112", "desc": "PLTU using Geothermal", "cat": "Energy Risk"}, {"code": "2812", "desc": "PLTG", "cat": "Energy Risk"}, {"code": "2813", "desc": "PLTGU (combined cycle)", "cat": "Energy Risk"}, {"code": "2814", "desc": "PLTD", "cat": "Energy Risk"}, {"code": "2815", "desc": "Other", "cat": "Energy Risk"}, {"code": "283", "desc": "Overhead power transmission lines and networks", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "284", "desc": "Voltage and current transformer stations, junction installation in the open", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "285", "desc": "Rubbish incineration installations for power generation and heating", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "286", "desc": "Gas Works Flammable, filling services, including acethylene, oxygen, nitrogen, argon, etc, non pipel", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "287", "desc": "Waterworks, Pumping Stations, Sewage Works, Ice Rinks, Water treatment plant (WTP), WWTP) (including", "cat": "Low Hazard Industrial Risk-Non hazardous process/stock"}, {"code": "2901", "desc": "Railways, LRT, MRT, Monorel, Cable cars (kereta gantung)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2902", "desc": "Highways, bridges, airport runways", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2903", "desc": "Jetties (dermaga)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2904", "desc": "Aerial railways/ropeways, funicular railways, chairlifts", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2905", "desc": "Airport : Hangars", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2906", "desc": "Airport : Workshops, spare parts depots", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2907", "desc": "Airport : Aircrafts", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2908", "desc": "Airport : General airport services", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2909", "desc": "Airport : Others", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2911", "desc": "Construction firm, road construction and construction sites", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2912", "desc": "Cranes, excavators, elevators, road building machines (excluding tar sprayers)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2913", "desc": "Tar sprayers and road surfacing plants", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2914", "desc": "Others", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2915", "desc": "Welding Plants", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2921", "desc": "Film television and recording on magnetic tape studios", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2922", "desc": "Film reproduction (prints) and photo treatment", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2923", "desc": "Cinemas, assembly rooms and concert halls", "cat": "Commercial & Residential Risk"}, {"code": "2924", "desc": "Theatres, variety theatres and circuses housed in permanent buildings", "cat": "Commercial & Residential Risk"}, {"code": "2925", "desc": "Circuses with a big top, show and exhibition tents", "cat": "Commercial & Residential Risk"}, {"code": "2926", "desc": "Others", "cat": "Commercial & Residential Risk"}, {"code": "2927", "desc": "Radio broadcasting, television broadcasting & relay stations, transmission tower including microwave", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2928", "desc": "Sentral Telecommunication Otomat (STO) dan warung pos/telekomunikasi (wartel)", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "2929", "desc": "Telecommunication operator engaged in furnishing telephone voice and data communication including th", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "29291", "desc": "Data center", "cat": "Commercial & Residential Risk"}, {"code": "2930", "desc": "Drug Store (apotek)", "cat": "Commercial & Residential Risk"}, {"code": "29311", "desc": "Department stores, building risk area > 200m2. If below 200m2 go to 2934", "cat": "Commercial & Residential Risk"}, {"code": "29312", "desc": "Supermarket, building risk area > 200m2. If below 200m2 go to 2933", "cat": "Commercial & Residential Risk"}, {"code": "29313A", "desc": "Grade A", "cat": "Commercial & Residential Risk"}, {"code": "29313B", "desc": "Grade B", "cat": "Commercial & Residential Risk"}, {"code": "29314", "desc": "Grocery Store", "cat": "Commercial & Residential Risk"}, {"code": "2932", "desc": "Mail Order Houses, online shopping", "cat": "Commercial & Residential Risk"}, {"code": "2933", "desc": "Chain Stores, convenience store, grocery store, with building risk area\n<200m2", "cat": "Commercial & Residential Risk"}, {"code": "2934", "desc": "Shops, non chain store", "cat": "Commercial & Residential Risk"}, {"code": "2935*", "desc": "Pasar Risks (traditional market, konsorsium)", "cat": "Commercial & Residential Risk"}, {"code": "2936", "desc": "Others", "cat": "Commercial & Residential Risk"}, {"code": "29371", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - NON HAZARDOUS GOODS (Steel, Concrete, Food\n& Beverage and others n", "cat": "MHR-1 (Non hazardous process/stock)"}, {"code": "29372", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - PLASTIC", "cat": "MHR-3 (Flammable)"}, {"code": "29373", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - ELECTRONIC EQUIPMENT and PERIPHERALS", "cat": "MHR-1 (Non hazardous process/stock)"}, {"code": "29374", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - TEXTILE GOODS, YARN.", "cat": "MHR-3 (Flammable)"}, {"code": "29375", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - CHEMICAL (Fertilizer, Flamable Chemical eg: LPG,\nLNG, PETROL, OIL,", "cat": "MHR-3 (Flammable)"}, {"code": "29376", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - PAPER , RUBBER, LEATHER & WOOD and its\nFINISHED GOODS", "cat": "MHR-3 (Flammable)"}, {"code": "29377", "desc": "PRIVATE WAREHOUSES & STOREHOUSE - OTHERS HAZARDOUS GOODS", "cat": "MHR-3 (Flammable)"}, {"code": "29378", "desc": "Public Warehouses, dengan syarat selain disebutkan di 29371", "cat": "High Risk"}, {"code": "29383", "desc": "Petrol / Diesel Fuel Stations", "cat": "Low"}, {"code": "29384", "desc": "Liquid Nature Gas (LNG) Stations for Automobiles", "cat": "Low"}, {"code": "29385", "desc": "Others", "cat": "Low"}, {"code": "29394", "desc": "Bonded Warehouses", "cat": "High Risk"}, {"code": "29395", "desc": "Show Rooms ( Permanent Show Rooms without Repair / Workshop ) for New Motor Cars, Electronic Goods, ", "cat": "Commercial & Residential Risk"}, {"code": "29411", "desc": "certified below 3 star classification", "cat": "Commercial & Residential Risk"}, {"code": "29412", "desc": "certified as 3 star and above", "cat": "Commercial & Residential Risk"}, {"code": "2942", "desc": "Night clubs, dance halls, ball rooms, discotheques, bars, billiards karaoke", "cat": "Commercial & Residential Risk"}, {"code": "2943", "desc": "Swimming pools or complex of swimming pools, sports stadium, sport centre, fitness centre, gyms and ", "cat": "Commercial & Residential Risk"}, {"code": "29431", "desc": "Swimming Pools or Complex of Swimming Pools not forming part of Recreation Centre or Hotel Complex s", "cat": "Commercial & Residential Risk"}, {"code": "29432", "desc": "Sport Stadium, Sport Centres, Fitness Centres, Gymns and the like", "cat": "Commercial & Residential Risk"}, {"code": "29433", "desc": "Private ( member only ) Club House and Golf Club Houses", "cat": "Commercial & Residential Risk"}, {"code": "2944", "desc": "Others", "cat": "Commercial & Residential Risk"}, {"code": "2945", "desc": "Restaurants, eating and drinking places, (permanent building)", "cat": "Commercial & Residential Risk"}, {"code": "2946", "desc": "Stalls, Huts ( Kedai ), Eating Places ( Warung Makan ), and the like (tenda, non permanent building)", "cat": "Commercial & Residential Risk"}, {"code": "2947", "desc": "Beauty salon/ Hair dresser/ Barber shops", "cat": "Commercial & Residential Risk"}, {"code": "2949", "desc": "Recreation areas and cultural centre", "cat": "Commercial & Residential Risk"}, {"code": "2951", "desc": "Sanatorium, hospitals, doctor's consulting rooms, old people's and children's homes", "cat": "Commercial & Residential Risk"}, {"code": "2952", "desc": "Religious facilities such as mosques, temples, churches, convents and the like", "cat": "Commercial & Residential Risk"}, {"code": "2953", "desc": "Schools, universities and training colleges", "cat": "Commercial & Residential Risk"}, {"code": "2954", "desc": "Museums", "cat": "Commercial & Residential Risk"}, {"code": "2955", "desc": "Psychiatric clinics", "cat": "Commercial & Residential Risk"}, {"code": "2961", "desc": "Motor vehicle repair shops with facilities for body repair work (including welding/ soldering and sp", "cat": "MHR-1 (Non hazardous process/stock)"}, {"code": "2962", "desc": "Code 2961 and also operating a petrol/diesel fuel station within the premises", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2963", "desc": "Motor vehicle service stations only without bodyrepair etc., (refer to code 2961)", "cat": "Commercial & Residential Risk"}, {"code": "2964", "desc": "Motor vehicle pools without any body repair work/service station facilities", "cat": "Commercial & Residential Risk"}, {"code": "2965", "desc": "Motor vehicle pools with service station facilities as described under code 2961", "cat": "Commercial & Residential Risk"}, {"code": "2966", "desc": "Motor vehicle pools with body repair work and service station facilities as described under code 296", "cat": "Commercial & Residential Risk"}, {"code": "2967", "desc": "Motor vehicle pools with a petrol/diesel fuel station within the premises", "cat": "Commercial & Residential Risk"}, {"code": "2968", "desc": "Motor vehicle pools with body repair work & service station facilities as described under code 2961 ", "cat": "MHR-2 (Moderate hazardous process)"}, {"code": "2969", "desc": "Rust protection / paint protection workshops", "cat": "Commercial & Residential Risk"}, {"code": "2971", "desc": "Apartments/ condominiums, offices, multi-storeyed car parks not exceeding 6 storeys above ground lev", "cat": "Commercial & Residential Risk"}, {"code": "2972", "desc": "Apartments/ condominiums, offices, multi-storeyed car parks exceeding 6 storeys up to 18 storeys abo", "cat": "Commercial & Residential Risk"}, {"code": "2973", "desc": "Apartments/ condominiums, offices, multi-storeyed car parks exceeding 18 storeys above ground level", "cat": "Commercial & Residential Risk"}, {"code": "2974", "desc": "Convention halls and other multi purpose buildings (but excluding exhibition)", "cat": "Commercial & Residential Risk"}, {"code": "2975", "desc": "Apartments/ condominiums, offices, multi-storeyed car parks - exceeding 24 storeys above ground", "cat": "Commercial & Residential Risk"}, {"code": "2976", "desc": "Dwelling houses not classified as shop houses (ruko) not exceeding 3 storeys", "cat": "Commercial & Residential Risk"}, {"code": "29761", "desc": "Dwelling house for boarding house/kos- kosan", "cat": "Commercial & Residential Risk"}, {"code": "2977", "desc": "Dwelling houses buildings floating on the river/sea shore (regardless of constructional class)", "cat": "Commercial & Residential Risk"}, {"code": "2978", "desc": "Independent analytical laboratories", "cat": "Commercial & Residential Risk"}, {"code": "2981", "desc": "Public buildings", "cat": "Commercial & Residential Risk"}, {"code": "2982", "desc": "Police barracks and police stations", "cat": "Commercial & Residential Risk"}, {"code": "2983", "desc": "Military Barracks", "cat": "Commercial & Residential Risk"}, {"code": "2984", "desc": "Others", "cat": "Commercial & Residential Risk"}, {"code": "2991", "desc": "Buildings in course of construction (rate to be applied againts Full Value of completed building)", "cat": "Commercial & Residential Risk"}, {"code": "2992", "desc": "Rents", "cat": "Commercial & Residential Risk"}, {"code": "3081", "desc": "Gedung tidak termasuk rumah asap", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "3082", "desc": "Rumah Asap", "cat": "Low Hazard Industrial Risk-Others"}, {"code": "309", "desc": "Gula bibit", "cat": "Low Hazard Industrial Risk-Others"}];
+
+// STATE
+let currentSec = 0;
+const totalSec = 12;
+
+// INIT
+document.getElementById('f_tanggal').valueAsDate = new Date();
+
+// NAVIGATION
+function goTo(n) {
+  if (n === 11) calcRiskGrading();
+  document.getElementById('sec'+currentSec).classList.add('hidden');
+  currentSec = n;
+  document.getElementById('sec'+n).classList.remove('hidden');
+  // Update progress
+  document.querySelectorAll('.pstep').forEach((el,i) => {
+    el.classList.remove('active','done');
+    if(i < n) el.classList.add('done');
+    if(i === n) el.classList.add('active');
+  });
+  // Buttons
+  document.getElementById('btn-prev').style.display = n > 0 ? 'block' : 'none';
+  document.getElementById('btn-next').textContent = n === 10 ? 'Lihat Hasil Risk Grading →' : (n === 11 ? '✓ Selesai' : 'Selanjutnya →');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function nextSec() { if(currentSec < totalSec-1) goTo(currentSec+1); }
+function prevSec() { if(currentSec > 0) goTo(currentSec-1); }
+
+// RADIO SELECT
+function selectRadio(el) {
+  const name = el.querySelector('input').name;
+  document.querySelectorAll(`[name="${name}"]`).forEach(r => r.closest('.radio-card').classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// GPS
+function getGPS() {
+  if(navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      document.getElementById('f_gps').value = pos.coords.latitude.toFixed(6)+', '+pos.coords.longitude.toFixed(6);
+    }, () => alert('Tidak dapat mengakses GPS. Pastikan izin lokasi diberikan.'));
+  } else {
+    alert('Browser tidak mendukung GPS.');
+  }
+}
+
+// OJK SEARCH
+function searchOJK(val) {
+  const dd = document.getElementById('ojk-dropdown');
+  if(val.length < 2) { dd.classList.remove('show'); return; }
+  const results = OJK_DATA.filter(d =>
+    d.desc.toLowerCase().includes(val.toLowerCase()) ||
+    d.code.includes(val) ||
+    d.cat.toLowerCase().includes(val.toLowerCase())
+  ).slice(0, 10);
+  if(!results.length) { dd.classList.remove('show'); return; }
+  dd.innerHTML = results.map(r => `
+    <div class="dropdown-item" onclick="selectOJK('${r.code}','${r.desc.replace(/'/g,"\\'")}','${r.cat.replace(/'/g,"\\'")}')">
+      <div class="di-code">${r.code}</div>
+      <div class="di-desc">${r.desc}</div>
+      <div class="di-cat">${r.cat}</div>
+    </div>`).join('');
+  dd.classList.add('show');
+}
+function selectOJK(code, desc, cat) {
+  document.getElementById('ojk-search').value = code+' — '+desc;
+  document.getElementById('ojk-dropdown').classList.remove('show');
+  const sel = document.getElementById('ojk-selected');
+  sel.style.display = 'block';
+  sel.innerHTML = `✅ <strong>Kode ${code}</strong> — ${desc}<br><small style="color:var(--green)">Risk Category: ${cat}</small>`;
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.search-wrap')) document.getElementById('ojk-dropdown').classList.remove('show');
+});
+
+// RISK GRADING CALCULATION
+function calcRiskGrading() {
+  const scores = {};
+  const ratings = {};
+
+  // MANAGEMENT
+  let mChecked = ['m1','m2','m3','m4','m5','m6'].filter(id => document.getElementById(id).checked).length;
+  let mBase = mChecked >= 5 ? 8 : mChecked >= 3 ? 6 : mChecked >= 1 ? 4 : 2;
+  let mAdj = 0;
+  const mKlaim = document.querySelector('[name=m_klaim]:checked');
+  if(mKlaim && mKlaim.value === '3+') mAdj -= 2;
+  if(mKlaim && mKlaim.value === '1-2') mAdj -= 1;
+  const mImp = document.querySelector('[name=m_improvement]:checked');
+  if(mImp && mImp.value === 'yes') mAdj += 2;
+  const mRek = document.querySelector('[name=m_rekomendasi]:checked');
+  if(mRek && mRek.value === 'yes') mAdj += 2;
+  scores.management = Math.max(2, Math.min(8, mBase + mAdj));
+  ratings.management = scoreToRating(scores.management);
+
+  // CONSTRUCTION
+  const cKelas = document.querySelector('[name=c_kelas]:checked');
+  let cBase = cKelas ? parseInt(cKelas.value) : 4;
+  const cSandwich = document.querySelector('[name=c_sandwich]:checked');
+  if(cSandwich && cSandwich.value === 'yes') cBase = Math.max(2, cBase - 2);
+  const cAcp = document.querySelector('[name=c_acp]:checked');
+  if(cAcp && cAcp.value === 'yes') cBase = Math.max(2, cBase - 2);
+  scores.construction = cBase;
+  ratings.construction = scoreToRating(scores.construction);
+
+  // OCCUPANCY
+  const oHazard = document.querySelector('[name=o_hazard]:checked');
+  let oScore = oHazard ? (oHazard.value.startsWith('8') ? 8 : oHazard.value.startsWith('6') ? 6 : 4) : 4;
+  scores.occupancy = oScore;
+  ratings.occupancy = scoreToRating(scores.occupancy);
+
+  // PROTECTION
+  const pScores = {
+    apar: {good:6, avg:4, none:2, w:0.2},
+    hidran: {good:8, avg:6, none:2, w:0.3},
+    detektor: {good:8, avg:6, none:2, w:0.25},
+    sprinkler: {good:8, avg:6, none:2, w:0.15},
+    damkar: {w:0.1}
+  };
+  let pTotal = 0;
+  ['apar','hidran','detektor','sprinkler'].forEach(name => {
+    const v = document.querySelector(`[name=p_${name}]:checked`);
+    const val = v ? pScores[name][v.value] : 2;
+    pTotal += val * pScores[name].w;
+  });
+  const pDamkar = document.querySelector('[name=p_damkar]:checked');
+  pTotal += (pDamkar ? parseInt(pDamkar.value) : 4) * 0.1;
+  scores.protection = Math.round(pTotal);
+  ratings.protection = scoreToRating(scores.protection);
+
+  // EXPOSURE
+  const exV = document.querySelector('[name=ex_kondisi]:checked');
+  scores.exposure = exV ? parseInt(exV.value) : 2;
+  ratings.exposure = scoreExpToRating(scores.exposure);
+
+  // NATURAL HAZARDS
+  const nhFields = ['nh_gempa','nh_tsunami','nh_petir','nh_banjir','nh_longsor','nh_history'];
+  let nhWorst = 'avg';
+  nhFields.forEach(name => {
+    const v = document.querySelector(`[name=${name}]:checked`);
+    if(v && (v.value === 'marg' || v.value === 'poor' || v.value === 'none_improved')) nhWorst = 'marg';
+  });
+  scores.nat_hazards = nhWorst === 'marg' ? 2 : 3;
+  ratings.nat_hazards = nhWorst === 'marg' ? 'Marginal' : 'Average';
+
+  // OTHER PERILS
+  scores.other_perils = 3;
+  ratings.other_perils = 'Average';
+
+  // LOSS ESTIMATE
+  const leV = document.querySelector('[name=le_mfl]:checked');
+  const leMap = {'7':7,'7b':7,'5':5,'3':3};
+  scores.loss_estimate = leV ? (leMap[leV.value]||5) : 5;
+  ratings.loss_estimate = scores.loss_estimate >= 7 ? 'Good' : scores.loss_estimate >= 5 ? 'Average' : 'Marginal';
+
+  // TOTAL
+  const total = scores.management + scores.construction + scores.occupancy + scores.protection +
+                scores.exposure + scores.nat_hazards + scores.other_perils + scores.loss_estimate;
+
+  let overall, cls;
+  if(total >= 46) { overall = 'GOOD'; cls = 'good'; }
+  else if(total >= 31) { overall = 'AVERAGE'; cls = 'average'; }
+  else if(total >= 21) { overall = 'MARGINAL'; cls = 'marginal'; }
+  else { overall = 'POOR'; cls = 'poor'; }
+
+  // RENDER RESULT
+  document.getElementById('result-summary').innerHTML = `
+    <div class="result-card ${cls}">
+      <div class="result-rating ${cls}">${overall}</div>
+      <div class="result-score">Total Skor: <strong>${total} / 55 poin</strong></div>
+      <div class="result-note">Tertanggung: ${document.getElementById('f_tertanggung').value || '—'} | Survey: ${document.getElementById('f_tanggal').value || '—'}</div>
+    </div>`;
+
+  const rows = [
+    ['1','Management','I', ratings.management, scores.management],
+    ['2','Construction','I', ratings.construction, scores.construction],
+    ['3','Occupancy','I', ratings.occupancy, scores.occupancy],
+    ['4','Protection','I', ratings.protection, scores.protection],
+    ['5','Exposure','II', ratings.exposure, scores.exposure],
+    ['6','Natural Hazards','II', ratings.nat_hazards, scores.nat_hazards],
+    ['7','Other Perils','II', ratings.other_perils, scores.other_perils],
+    ['8','Loss Estimate','III', ratings.loss_estimate, scores.loss_estimate],
+    ['','TOTAL','','', total],
+  ];
+
+  document.getElementById('score-rows').innerHTML = rows.map(([n,cat,bwt,rat,sc]) => `
+    <tr>
+      <td>${n}</td>
+      <td>${cat}</td>
+      <td>${bwt}</td>
+      <td>${rat ? `<span class="badge ${ratClass(rat)}">${rat}</span>` : ''}</td>
+      <td><strong>${sc}</strong></td>
+    </tr>`).join('');
+}
+
+function scoreToRating(s) {
+  if(s >= 7) return 'Good';
+  if(s >= 5) return 'Average';
+  if(s >= 3) return 'Marginal';
+  return 'Poor';
+}
+function scoreExpToRating(s) {
+  if(s >= 4) return 'Good';
+  if(s >= 3) return 'Average';
+  if(s >= 2) return 'Marginal';
+  return 'Poor';
+}
+function ratClass(r) {
+  if(!r) return '';
+  if(r === 'Good') return 'b-good';
+  if(r === 'Average') return 'b-avg';
+  if(r === 'Marginal' || r === 'Poor') return 'b-marg';
+  return '';
+}
+
+
+// OCCUPANCY-SPECIFIC BLOCK TOGGLE
+function showOccupancyBlock(val) {
+  document.querySelectorAll('.occ-block').forEach(el => el.classList.add('hidden'));
+  const placeholder = document.getElementById('sp-placeholder');
+  if (!val) { placeholder.style.display = 'block'; return; }
+  placeholder.style.display = 'none';
+  const el = document.getElementById('sp-' + val);
+  if (el) el.classList.remove('hidden');
+}
+
+// FILE UPLOAD PREVIEW (in-memory only, prototype)
+function handleUpload(input, listId) {
+  const list = document.getElementById(listId);
+  Array.from(input.files).forEach(file => {
+    const item = document.createElement('div');
+    item.className = 'upload-item';
+    const isImage = file.type.startsWith('image/');
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        item.innerHTML = `<img src="${e.target.result}" alt="${file.name}">
+          <div class="file-name">${file.name}</div>
+          <span class="file-remove" onclick="this.closest('.upload-item').remove()">✕ Hapus</span>`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      item.innerHTML = `<div class="file-icon">📄</div>
+        <div class="file-name">${file.name}</div>
+        <span class="file-remove" onclick="this.closest('.upload-item').remove()">✕ Hapus</span>`;
+    }
+    list.appendChild(item);
+  });
+  input.value = '';
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+}
+
+enum Role {
+  SURVEYOR
+  ADMIN
+}
+
+enum SurveyStatus {
+  ONBOARD
+  REVIEW
+  GRADING
+  DONE
+  CLOSED
+  REJECTED
+}
+
+enum GradeCategory {
+  POOR
+  MARGINAL
+  AVERAGE
+  GOOD
+}
+
+enum AnswerType {
+  TEXT
+  YES_NO
+  NUMBER
+  CHOICE
+  MULTI
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          Role           @default(SURVEYOR)
+  surveys       Survey[]
+  grades        RiskGrade[]
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Occupation {
+  id        String       @id @default(cuid())
+  code      String
+  name      String
+  level     Int
+  parentId  String?
+  parent      Occupation?  @relation("OccupationTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Occupation[] @relation("OccupationTree")
+  properties  Property[]
+  questions   Question[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([code, level])
+  @@index([level])
+  @@index([parentId])
+}
+
+model Property {
+  id           String     @id @default(cuid())
+  name         String
+  address      String
+  ownerName    String
+  extraData    Json?
+  occupationId String
+  occupation   Occupation @relation(fields: [occupationId], references: [id])
+  surveys      Survey[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([occupationId])
+}
+
+model Survey {
+  id          String       @id @default(cuid())
+  propertyId  String
+  property    Property     @relation(fields: [propertyId], references: [id])
+  surveyorId  String
+  surveyor    User         @relation(fields: [surveyorId], references: [id])
+  status      SurveyStatus @default(ONBOARD)
+  surveyDate  DateTime?
+  notes       String?
+  responses   SurveyResponse[]
+  answers     SurveyAnswer[]
+  attachments SurveyAttachment[]
+  grade       RiskGrade?
+  notifications Notification[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+  @@index([surveyorId])
+  @@index([propertyId])
+}
+
+model SurveyItem {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  order     Int
+  responses SurveyResponse[]
+}
+
+model SurveyResponse {
+  id        String   @id @default(cuid())
+  surveyId  String
+  survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      SurveyItem @relation(fields: [itemId], references: [id])
+  score     Int
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@unique([surveyId, itemId])
+  @@index([itemId])
+}
+
+model RiskGrade {
+  id         String        @id @default(cuid())
+  surveyId   String        @unique
+  survey     Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  // Null = skor diisi otomatis dari wizard surveyor (risk grading mandiri).
+  // Terisi = grading resmi oleh admin.
+  adminId    String?
+  admin      User?         @relation(fields: [adminId], references: [id])
+  totalScore Int
+  category   GradeCategory
+  notes      String?
+  gradedAt   DateTime      @default(now())
+}
+
+model Question {
+  id           String        @id @default(cuid())
+  text         String
+  answerType   AnswerType    @default(TEXT)
+  options      String[]      @default([])
+  required     Boolean       @default(false)
+  section      String
+  order        Int
+  occupationId String?
+  occupation   Occupation?   @relation(fields: [occupationId], references: [id])
+  answers      SurveyAnswer[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([occupationId])
+  @@index([section])
+}
+
+model SurveyAnswer {
+  id         String   @id @default(cuid())
+  surveyId   String
+  survey     Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  value      String
+  createdAt  DateTime @default(now())
+
+  @@unique([surveyId, questionId])
+  @@index([questionId])
+}
+
+model SurveyAttachment {
+  id        String   @id @default(cuid())
+  surveyId  String
+  survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileKey   String
+  mimeType  String
+  sizeBytes Int
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([surveyId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surveyId  String?
+  survey    Survey?   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
