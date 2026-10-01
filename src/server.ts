@@ -127,56 +127,15 @@ function buildFallbackApp(initError: unknown) {
   return fallback;
 }
 
-import type { IncomingMessage, ServerResponse } from 'http';
-
 let app: ReturnType<typeof buildServer>;
-let readyPromise: any = null;
-
 try {
   app = buildServer();
 } catch (err) {
   app = buildFallbackApp(err);
 }
 
-function ensureReady(): Promise<any> {
-  if (!readyPromise) {
-    readyPromise = Promise.resolve(app.ready());
-  }
-  return readyPromise;
-}
+export default app;
 
-export { buildServer };
-
-// For Vercel serverless functions: export a handler function instead of the
-// Fastify instance. Vercel's @vercel/node runtime expects the default export
-// to be a function with (req, res) signature. The handler ensures the Fastify
-// app is fully initialized (plugins loaded, routes ready) before injecting
-// each request.
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  try {
-    await ensureReady();
-    const response = await app.inject({
-      method: (req.method || 'GET') as any,
-      url: req.url || '/',
-      headers: req.headers as Record<string, string>,
-    });
-    (res as any).statusCode = (response as any).statusCode;
-    for (const [key, value] of Object.entries((response as any).headers || {})) {
-      if (value) {
-        res.setHeader(key, Array.isArray(value) ? value.join(', ') : String(value));
-      }
-    }
-    res.end((response as any).body);
-  } catch (error) {
-    console.error('[handler] error:', error);
-    if (!res.headersSent) {
-      res.statusCode = 500;
-    }
-    res.end('Internal Server Error');
-  }
-}
-
-// For local development: start the server in listening mode
 if (require.main === module) {
   main();
 }
