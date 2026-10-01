@@ -127,14 +127,52 @@ function buildFallbackApp(initError: unknown) {
   return fallback;
 }
 
+import type { IncomingMessage, ServerResponse } from 'http';
+
 let app: ReturnType<typeof buildServer>;
+let readyPromise: Promise<any> | null = null;
+
 try {
   app = buildServer();
 } catch (err) {
   app = buildFallbackApp(err);
 }
 
-export default app;
+function ensureReady(): Promise<any> {
+  if (!readyPromise) {
+    readyPromise = Promise.resolve(app.ready());
+  }
+  return readyPromise;
+}
+
+// Export both the app (for local dev) and a handler (for Vercel serverless)
+export { app };
+
+// Vercel serverless handler: Vercel's @vercel/node runtime expects the
+// default export to be a function with (req, res) signature.
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  try {
+    await ensureReady();
+    const response = await app.inject({
+      method: (req.method || 'GET') as any,
+      url: req.url || '/',
+      headers: req.headers as Record<string, string>,
+    });
+    (res as any).statusCode = (response as any).statusCode;
+    for (const [key, value] of Object.entries((response as any).headers || {})) {
+      if (value) {
+        res.setHeader(key, Array.isArray(value) ? value.join(', ') : String(value));
+      }
+    }
+    res.end((response as any).body);
+  } catch (error) {
+    console.error('[handler] error:', error);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+    }
+    res.end('Internal Server Error');
+  }
+}
 
 if (require.main === module) {
   main();
