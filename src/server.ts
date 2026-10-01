@@ -134,9 +134,10 @@ try {
   app = buildFallbackApp(err);
 }
 
+export { buildServer, buildFallbackApp };
 export default app;
 
-// In serverless environments (Vercel), the Fastify app must be fully initialized
+// In Vercel serverless environments, the Fastify app must be fully initialized
 // (plugins registered, routes ready) before it can handle requests.
 // Without ready(), requests hang because routes/plugins aren't loaded yet.
 if (process.env.VERCEL === '1') {
