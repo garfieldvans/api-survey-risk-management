@@ -16,14 +16,24 @@ const answerSchema = z.object({
   value: z.string().max(5000),
 });
 
-// Payload grading dari wizard surveyor (port reff.html) — skor dihitung server-side
-// via computeGradeScores agar authoritative.
+// Payload grading dari wizard surveyor (port prototipe revisi terbaru) — skor dihitung
+// server-side via computeGradeScores agar authoritative. Bentuk input mengikuti
+// revisi HTML: 5 aspek Management Y/N (mAnswers), Pemisah + Jumlah Bangunan di
+// Loss Estimate, plus konteks (tsi/cLantai/spJenis/oHazardCat) untuk Syarat Wajib Hydrant.
 const gradeInputsSchema = z.object({
-  mChecklist: z.array(z.enum(['m1', 'm2', 'm3', 'm4', 'm5', 'm6'])),
+  mAnswers: z.object({
+    m1: z.enum(['yes', 'no']),
+    m2: z.enum(['yes', 'no']),
+    m3: z.enum(['yes', 'no']),
+    m4: z.enum(['yes', 'no']),
+    m7: z.enum(['yes', 'no']),
+  }),
+  mChecklist: z.array(z.string()),
   mKlaim: z.enum(['0', '1-2', '3+']),
-  mImprovement: z.enum(['yes', 'no']),
+  // Hanya wajib bila ada klaim (validasi di wizard) — bisa kosong
+  mImprovement: z.enum(['yes', 'no', '']),
   mRekomendasi: z.enum(['yes', 'no']),
-  cKelas: z.enum(['8', '6', '4', '2']),
+  cKelas: z.enum(['8', '6', '4', '3', '2']),
   cSandwich: z.enum(['yes', 'no']),
   cAcp: z.enum(['yes', 'no']),
   oHazard: z.enum(['8', '6a', '6b', '4a', '4b', '4c']),
@@ -34,12 +44,16 @@ const gradeInputsSchema = z.object({
   pDamkar: z.enum(['8', '6', '4', '2']),
   exKondisi: z.enum(['4', '3', '2', '1']),
   nhGempa: z.enum(['avg', 'marg']),
-  nhTsunami: z.enum(['avg', 'marg']),
-  nhPetir: z.enum(['avg_low', 'avg_high', 'marg']),
   nhBanjir: z.enum(['avg', 'marg']),
-  nhLongsor: z.enum(['avg', 'marg']),
-  nhHistory: z.enum(['none', 'improved', 'none_improved']),
-  leMfl: z.enum(['7', '7b', '5', '3']),
+  nhPetir: z.enum(['avg', 'marg']),
+  // Pemisah masih TBC — tidak wajib di wizard
+  lePemisah: z.enum(['yes', 'no', '']),
+  leJmlBangunan: z.enum(['1', 'gt1']),
+  // Konteks Syarat Wajib Hydrant (bukan komponen skor)
+  tsi: z.number().min(0),
+  cLantai: z.number().min(0),
+  spJenis: z.string(),
+  oHazardCat: z.string(),
 });
 
 const gradeNotesSchema = z
@@ -61,7 +75,9 @@ const createSurveySchema = z.object({
     name: z.string().min(1),
     address: z.string().min(1),
     ownerName: z.string().min(1),
-    occupationId: z.string().min(1),
+    // Opsional — prototipe tidak punya pemilih Okupasi OJK; tanpa okupasi,
+    // kuesioner dinamis dibatasi ke pertanyaan core.
+    occupationId: z.string().min(1).optional(),
     extraData: z.record(z.unknown()).optional(),
   }),
   surveyDate: z.coerce.date().optional(),
@@ -118,9 +134,14 @@ async function cleanupSurveyR2Files(attachments: Array<{ fileKey: string }>): Pr
 
 async function validateAnswers(
   answers: Array<{ questionId: string; value: string }>,
-  occupationId: string,
+  occupationId: string | null,
 ) {
-  const allowedIds = new Set(await getQuestionIdsForOccupation(occupationId));
+  const allowedIds = new Set(
+    occupationId
+      ? await getQuestionIdsForOccupation(occupationId)
+      : // Tanpa okupasi OJK (sesuai prototipe) hanya pertanyaan core yang sah
+        (await prisma.question.findMany({ where: { occupationId: null }, select: { id: true } })).map((q) => q.id),
+  );
   const seen = new Set<string>();
 
   for (const a of answers) {
@@ -216,14 +237,16 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     const user = request.user!;
     const body = createSurveySchema.parse(request.body);
 
-    const occupation = await prisma.occupation.findUnique({
-      where: { id: body.property.occupationId },
-      include: { children: { take: 1 } },
-    });
-    if (!occupation) throw new AppError('Okupasi tidak ditemukan', 400);
-    if (occupation.children.length > 0) throw new AppError('Okupasi harus node daun (tanpa anak)', 400);
+    if (body.property.occupationId) {
+      const occupation = await prisma.occupation.findUnique({
+        where: { id: body.property.occupationId },
+        include: { children: { take: 1 } },
+      });
+      if (!occupation) throw new AppError('Okupasi tidak ditemukan', 400);
+      if (occupation.children.length > 0) throw new AppError('Okupasi harus node daun (tanpa anak)', 400);
+    }
 
-    await validateAnswers(body.answers, occupation.id);
+    await validateAnswers(body.answers, body.property.occupationId ?? null);
 
     // Prefetch data grading SEKALI di luar transaksi supaya jumlah query di
     // dalam transaksi seminimal mungkin (lihat catatan timeout di bawah).
@@ -248,7 +271,7 @@ export async function surveyRoutes(fastify: FastifyInstance) {
           name: body.property.name,
           address: body.property.address,
           ownerName: body.property.ownerName,
-          occupationId: body.property.occupationId,
+          occupationId: body.property.occupationId ?? null,
           extraData: (body.property.extraData as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
         },
       });

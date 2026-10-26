@@ -9,7 +9,8 @@ const createSchema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
   ownerName: z.string().min(1),
-  occupationId: z.string().min(1),
+  // Opsional — penyelarasan dengan prototipe: Info Umum tidak memilih Okupasi OJK
+  occupationId: z.string().min(1).optional(),
   extraData: z.record(z.unknown()).optional(),
 });
 
@@ -47,12 +48,14 @@ export async function propertyRoutes(fastify: FastifyInstance) {
   fastify.post('/properties', { preHandler: [authenticate()] }, async (request) => {
     const body = createSchema.parse(request.body);
 
-    const occupation = await prisma.occupation.findUnique({
-      where: { id: body.occupationId },
-    });
-    if (!occupation) throw new AppError('Okupasi tidak ditemukan', 400);
-    if (occupation.level !== 3) {
-      throw new AppError('Okupasi harus level 3 (paling spesifik)', 400);
+    if (body.occupationId) {
+      const occupation = await prisma.occupation.findUnique({
+        where: { id: body.occupationId },
+      });
+      if (!occupation) throw new AppError('Okupasi tidak ditemukan', 400);
+      if (occupation.level !== 3) {
+        throw new AppError('Okupasi harus level 3 (paling spesifik)', 400);
+      }
     }
 
     const property = await prisma.property.create({
@@ -60,7 +63,7 @@ export async function propertyRoutes(fastify: FastifyInstance) {
         name: body.name,
         address: body.address,
         ownerName: body.ownerName,
-        occupationId: body.occupationId,
+        occupationId: body.occupationId ?? null,
         extraData: body.extraData as Prisma.InputJsonValue | undefined,
       },
     });

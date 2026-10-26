@@ -73,8 +73,8 @@ model Property {
   address      String
   ownerName    String
   extraData    Json?
-  occupationId String
-  occupation   Occupation @relation(fields: [occupationId], references: [id])
+  occupationId String?
+  occupation   Occupation? @relation(fields: [occupationId], references: [id])
   surveys      Survey[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

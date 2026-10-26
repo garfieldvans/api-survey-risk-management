@@ -51,17 +51,20 @@ export async function reportRoutes(fastify: FastifyInstance) {
         address: survey.property.address,
         ownerName: survey.property.ownerName,
         extraData: survey.property.extraData,
-        occupation: {
-          code: survey.property.occupation.code,
-          name: survey.property.occupation.name,
-          level1: survey.property.occupation.parent?.parent?.name
-            ? `${survey.property.occupation.parent.parent.name} (${survey.property.occupation.parent.parent.code})`
-            : null,
-          level2: survey.property.occupation.parent?.name
-            ? `${survey.property.occupation.parent.name} (${survey.property.occupation.parent.code})`
-            : null,
-          level3: `${survey.property.occupation.name} (${survey.property.occupation.code})`,
-        },
+        // Okupasi OJK opsional (penyelarasan prototipe) — bisa null untuk properti baru
+        occupation: survey.property.occupation
+          ? {
+              code: survey.property.occupation.code,
+              name: survey.property.occupation.name,
+              level1: survey.property.occupation.parent?.parent?.name
+                ? `${survey.property.occupation.parent.parent.name} (${survey.property.occupation.parent.parent.code})`
+                : null,
+              level2: survey.property.occupation.parent?.name
+                ? `${survey.property.occupation.parent.name} (${survey.property.occupation.parent.code})`
+                : null,
+              level3: `${survey.property.occupation.name} (${survey.property.occupation.code})`,
+            }
+          : null,
       },
       surveyor: {
         name: survey.surveyor.name,
