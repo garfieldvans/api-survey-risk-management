@@ -20,35 +20,37 @@ const answerSchema = z.object({
 // server-side via computeGradeScores agar authoritative. Bentuk input mengikuti
 // revisi HTML: 5 aspek Management Y/N (mAnswers), Pemisah + Jumlah Bangunan di
 // Loss Estimate, plus konteks (tsi/cLantai/spJenis/oHazardCat) untuk Syarat Wajib Hydrant.
+// Semua pilihan BOLEH KOSONG ('') — validasi langkah dilonggarkan, jawaban yang
+// belum diisi dinilai netral oleh engine dan ditandai "Belum dijawab" di catatan item.
 const gradeInputsSchema = z.object({
   mAnswers: z.object({
-    m1: z.enum(['yes', 'no']),
-    m2: z.enum(['yes', 'no']),
-    m3: z.enum(['yes', 'no']),
-    m4: z.enum(['yes', 'no']),
-    m7: z.enum(['yes', 'no']),
+    m1: z.enum(['yes', 'no', '']),
+    m2: z.enum(['yes', 'no', '']),
+    m3: z.enum(['yes', 'no', '']),
+    m4: z.enum(['yes', 'no', '']),
+    m7: z.enum(['yes', 'no', '']),
   }),
   mChecklist: z.array(z.string()),
-  mKlaim: z.enum(['0', '1-2', '3+']),
+  mKlaim: z.enum(['0', '1-2', '3+', '']),
   // Hanya wajib bila ada klaim (validasi di wizard) — bisa kosong
   mImprovement: z.enum(['yes', 'no', '']),
-  mRekomendasi: z.enum(['yes', 'no']),
-  cKelas: z.enum(['8', '6', '4', '3', '2']),
-  cSandwich: z.enum(['yes', 'no']),
-  cAcp: z.enum(['yes', 'no']),
-  oHazard: z.enum(['8', '6a', '6b', '4a', '4b', '4c']),
-  pApar: z.enum(['good', 'avg', 'none']),
-  pHidran: z.enum(['good', 'avg', 'none']),
-  pDetektor: z.enum(['good', 'avg', 'none']),
-  pSprinkler: z.enum(['good', 'avg', 'none']),
-  pDamkar: z.enum(['8', '6', '4', '2']),
-  exKondisi: z.enum(['4', '3', '2', '1']),
-  nhGempa: z.enum(['avg', 'marg']),
-  nhBanjir: z.enum(['avg', 'marg']),
-  nhPetir: z.enum(['avg', 'marg']),
+  mRekomendasi: z.enum(['yes', 'no', '']),
+  cKelas: z.enum(['8', '6', '4', '3', '2', '']),
+  cSandwich: z.enum(['yes', 'no', '']),
+  cAcp: z.enum(['yes', 'no', '']),
+  oHazard: z.enum(['8', '6a', '6b', '4a', '4b', '4c', '']),
+  pApar: z.enum(['good', 'avg', 'none', '']),
+  pHidran: z.enum(['good', 'avg', 'none', '']),
+  pDetektor: z.enum(['good', 'avg', 'none', '']),
+  pSprinkler: z.enum(['good', 'avg', 'none', '']),
+  pDamkar: z.enum(['8', '6', '4', '2', '']),
+  exKondisi: z.enum(['4', '3', '2', '1', '']),
+  nhGempa: z.enum(['avg', 'marg', '']),
+  nhBanjir: z.enum(['avg', 'marg', '']),
+  nhPetir: z.enum(['avg', 'marg', '']),
   // Pemisah masih TBC — tidak wajib di wizard
   lePemisah: z.enum(['yes', 'no', '']),
-  leJmlBangunan: z.enum(['1', 'gt1']),
+  leJmlBangunan: z.enum(['1', 'gt1', '']),
   // Konteks Syarat Wajib Hydrant (bukan komponen skor)
   tsi: z.number().min(0),
   cLantai: z.number().min(0),
@@ -302,12 +304,24 @@ export async function surveyRoutes(fastify: FastifyInstance) {
         const notesMap = body.grading.notes ?? {};
         await tx.surveyResponse.deleteMany({ where: { surveyId: s.id } });
         await tx.surveyResponse.createMany({
-          data: GRADE_ITEM_CODES.map((code) => ({
-            surveyId: s.id,
-            itemId: itemByCode!.get(code)!,
-            score: gradeResult.scores[code],
-            notes: notesMap[code as keyof typeof notesMap] ?? null,
-          })),
+          data: GRADE_ITEM_CODES.map((code) => {
+            const baseTrim = (notesMap[code as keyof typeof notesMap] ?? '').trim();
+            // Penanda "belum dijawab" — kirim tetap boleh, tapi item yang
+            // kosong harus terlihat jelas di laporan / review admin.
+            const missing = gradeResult.incompleteByItem[code];
+            const flag = missing?.length ? `Belum dijawab: ${missing.join(', ')}.` : '';
+            const notes = flag
+              ? baseTrim
+                ? `${baseTrim}${/[.!?]$/.test(baseTrim) ? ' ' : '. '}${flag}`
+                : flag
+              : baseTrim || null;
+            return {
+              surveyId: s.id,
+              itemId: itemByCode!.get(code)!,
+              score: gradeResult.scores[code],
+              notes,
+            };
+          }),
         });
 
         // adminId null = grading otomatis dari surveyor; admin dapat override
@@ -406,5 +420,111 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     ]);
 
     return ok({ message: 'Survei dan properti dihapus permanen' });
+  });
+
+  // --------------- Draft: isian form sementara surveyor ---------------
+  // Payload wizard disimpan utuh sebagai JSON (belum ada Property/Survey yang
+  // dibuat) sehingga surveyor bisa berhenti di tengah jalan dan melanjutkan
+  // nanti. Masa berlaku 30 hari sejak simpan terakhir (geser tiap simpan) dan
+  // dihapus lazily — tanpa cron — karena API berjalan serverless.
+
+  const DRAFT_TTL_DAYS = 30;
+
+  const draftBodySchema = z.object({
+    // id opsional: ada → update draft itu (harus milik surveyor yang sama)
+    id: z.string().min(1).max(64).optional(),
+    // bentuk payload bebas — yang memahami strukturnya adalah wizard FE
+    data: z.record(z.string(), z.unknown()),
+  });
+
+  function draftExpiry() {
+    const d = new Date();
+    d.setDate(d.getDate() + DRAFT_TTL_DAYS);
+    return d;
+  }
+
+  /** Hapus draft kedaluwarsa milik surveyor (dipanggil sebelum list/simpan). */
+  async function purgeExpiredDrafts(surveyorId: string) {
+    await prisma.surveyDraft.deleteMany({
+      where: { surveyorId, expiresAt: { lte: new Date() } },
+    });
+  }
+
+  /**
+   * GET /surveys/drafts — daftar draft aktif milik surveyor login.
+   */
+  fastify.get('/surveys/drafts', { preHandler: [authenticate()] }, async (request) => {
+    const user = request.user!;
+    await purgeExpiredDrafts(user.id);
+    const drafts = await prisma.surveyDraft.findMany({
+      where: { surveyorId: user.id },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true, data: true, expiresAt: true, createdAt: true, updatedAt: true },
+    });
+    return ok({ drafts });
+  });
+
+  /**
+   * GET /surveys/drafts/:id — isi satu draft (untuk melanjutkan mengisi).
+   */
+  fastify.get('/surveys/drafts/:id', { preHandler: [authenticate()] }, async (request) => {
+    const user = request.user!;
+    const { id } = request.params as { id: string };
+    await purgeExpiredDrafts(user.id);
+    const draft = await prisma.surveyDraft.findFirst({
+      where: { id, surveyorId: user.id },
+      select: { id: true, data: true, expiresAt: true, createdAt: true, updatedAt: true },
+    });
+    if (!draft) throw new AppError('Draft tidak ditemukan atau sudah kedaluwarsa', 404);
+    return ok({ draft });
+  });
+
+  /**
+   * POST /surveys/drafts — buat atau perbarui draft (upsert per surveyor+id).
+   * Setiap simpan me-reset masa berlaku 30 hari sejak terakhir disimpan.
+   */
+  fastify.post('/surveys/drafts', { preHandler: [authenticate()] }, async (request, reply) => {
+    const user = request.user!;
+    const body = draftBodySchema.parse(request.body);
+    await purgeExpiredDrafts(user.id);
+
+    const data = body.data as Prisma.InputJsonValue;
+    const expiresAt = draftExpiry();
+
+    let draft;
+    if (body.id) {
+      // Hanya boleh menimpa draft milik sendiri — id asing diabaikan (buat baru).
+      const owned = await prisma.surveyDraft.findFirst({
+        where: { id: body.id, surveyorId: user.id },
+        select: { id: true },
+      });
+      if (owned) {
+        draft = await prisma.surveyDraft.update({
+          where: { id: owned.id },
+          data: { data, expiresAt },
+          select: { id: true, data: true, expiresAt: true, createdAt: true, updatedAt: true },
+        });
+        return ok({ draft });
+      }
+    }
+
+    draft = await prisma.surveyDraft.create({
+      data: { surveyorId: user.id, data, expiresAt },
+      select: { id: true, data: true, expiresAt: true, createdAt: true, updatedAt: true },
+    });
+    return reply.code(201).send(ok({ draft }));
+  });
+
+  /**
+   * DELETE /surveys/drafts/:id — buang draft (mis. setelah survei berhasil dikirim).
+   */
+  fastify.delete('/surveys/drafts/:id', { preHandler: [authenticate()] }, async (request) => {
+    const user = request.user!;
+    const { id } = request.params as { id: string };
+    const { count } = await prisma.surveyDraft.deleteMany({
+      where: { id, surveyorId: user.id },
+    });
+    if (count === 0) throw new AppError('Draft tidak ditemukan', 404);
+    return ok({ message: 'Draft dihapus' });
   });
 }

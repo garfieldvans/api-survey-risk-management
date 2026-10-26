@@ -43,6 +43,7 @@ model User {
   name          String
   role          Role           @default(SURVEYOR)
   surveys       Survey[]
+  drafts        SurveyDraft[]
   grades        RiskGrade[]
   notifications Notification[]
   createdAt     DateTime       @default(now())
@@ -102,6 +103,22 @@ model Survey {
   @@index([status])
   @@index([surveyorId])
   @@index([propertyId])
+}
+
+// Draft isian form survey (belum dikirim). Payload disimpan utuh sebagai JSON
+// supaya wizard bisa dilanjutkan tanpa memecah field setengah jadi ke tabel
+// Property/Survey. Kedaluwarsa 30 hari sejak simpan terakhir (expiresAt geser)
+// dan dihapus lazily saat daftar/simpan draft dijalankan — tanpa cron.
+model SurveyDraft {
+  id         String   @id @default(cuid())
+  surveyorId String
+  surveyor   User     @relation(fields: [surveyorId], references: [id], onDelete: Cascade)
+  data       Json
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([surveyorId, expiresAt])
 }
 
 model SurveyItem {

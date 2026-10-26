@@ -52,38 +52,39 @@ export interface GradeInputs {
   mAnswers: Record<MAspectId, '' | 'yes' | 'no'>;
   /** Id aspek yang berstatus "yes" — dipertahankan kompatibel dengan payload grading lama. */
   mChecklist: string[];
-  mKlaim: '0' | '1-2' | '3+';
+  /** '' = belum dijawab (wajib sebelum revisi ini; kini boleh kosong, dinilai netral). */
+  mKlaim: '' | '0' | '1-2' | '3+';
   /** '' = belum dijawab (hanya wajib bila ada klaim). */
   mImprovement: '' | 'yes' | 'no';
-  mRekomendasi: 'yes' | 'no';
+  mRekomendasi: '' | 'yes' | 'no';
 
-  // CONSTRUCTION
+  // CONSTRUCTION — '' = belum dijawab
   /** '2' = Tidak ada informasi (nilai tetap 4, penanda agar kompatibel payload lama). */
-  cKelas: '8' | '6' | '4' | '3' | '2';
-  cSandwich: 'yes' | 'no';
-  cAcp: 'yes' | 'no';
+  cKelas: '' | '8' | '6' | '4' | '3' | '2';
+  cSandwich: '' | 'yes' | 'no';
+  cAcp: '' | 'yes' | 'no';
 
-  // OCCUPANCY (petakan skor Breakdown ASWATA: 8→'8', 6→'6a', 4→'4a')
-  oHazard: '8' | '6a' | '6b' | '4a' | '4b' | '4c';
+  // OCCUPANCY (petakan skor Breakdown ASWATA: 8→'8', 6→'6a', 4→'4a') — '' = belum dijawab
+  oHazard: '' | '8' | '6a' | '6b' | '4a' | '4b' | '4c';
 
-  // PROTECTION
-  pApar: ProtectionChoice;
-  pHidran: ProtectionChoice;
-  pDetektor: ProtectionChoice;
-  pSprinkler: ProtectionChoice;
-  pDamkar: '8' | '6' | '4' | '2';
+  // PROTECTION — '' = belum dijawab
+  pApar: '' | ProtectionChoice;
+  pHidran: '' | ProtectionChoice;
+  pDetektor: '' | ProtectionChoice;
+  pSprinkler: '' | ProtectionChoice;
+  pDamkar: '' | '8' | '6' | '4' | '2';
 
-  // EXPOSURE
-  exKondisi: '4' | '3' | '2' | '1';
+  // EXPOSURE — '' = belum dijawab
+  exKondisi: '' | '4' | '3' | '2' | '1';
 
-  // NATURAL HAZARDS — kombinasi Gempa + Banjir + Petir
-  nhGempa: 'avg' | 'marg';
-  nhBanjir: 'avg' | 'marg';
-  nhPetir: 'avg' | 'marg';
+  // NATURAL HAZARDS — kombinasi Gempa + Banjir + Petir — '' = belum dijawab
+  nhGempa: '' | 'avg' | 'marg';
+  nhBanjir: '' | 'avg' | 'marg';
+  nhPetir: '' | 'avg' | 'marg';
 
-  // LOSS ESTIMATE — '' = Pemisah (TBC) belum dijawab
+  // LOSS ESTIMATE — '' = Pemisah (TBC) belum dijawab / Jumlah bangunan belum dijawab
   lePemisah: '' | 'yes' | 'no';
-  leJmlBangunan: '1' | 'gt1';
+  leJmlBangunan: '' | '1' | 'gt1';
 
   // KONTEKS — syarat wajib Hydrant (bukan komponen skor)
   tsi: number;
@@ -96,7 +97,55 @@ export interface GradeResult {
   scores: Record<GradeItemCode, number>;
   total: number;
   category: GradeCategory;
+  /**
+   * Item yang punya jawaban kosong, beserta label field-nya — dipakai API untuk
+   * menandai "Belum dijawab: …" pada catatan item di laporan (kirim tetap boleh).
+   */
+  incompleteByItem: Partial<Record<GradeItemCode, string[]>>;
 }
+
+/** Label pendek per input — dipakai pada penanda "Belum dijawab" di laporan. */
+const FIELD_LABELS: Record<string, string> = {
+  m1: 'Kebersihan dan kerapihan',
+  m2: 'Aturan merokok',
+  m3: 'Pelatihan kebakaran',
+  m4: 'Perawatan rutin',
+  m7: 'Izin Kerja Panas (Hot Work Permit)',
+  mKlaim: 'Klaim 3 tahun terakhir',
+  mImprovement: 'Risk improvement atas klaim',
+  mRekomendasi: 'Rekomendasi perbaikan',
+  cKelas: 'Kelas kebakaran bangunan',
+  cSandwich: 'Sandwich panel',
+  cAcp: 'ACP (material fasad)',
+  oHazard: 'Kondisi kebakaran (Occupancy)',
+  pApar: 'APAR',
+  pHidran: 'Hidran',
+  pDetektor: 'Detektor kebakaran',
+  pSprinkler: 'Sprinkler',
+  pDamkar: 'Waktu respons pemadam',
+  exKondisi: 'Kondisi exposure',
+  nhGempa: 'Gempa bumi',
+  nhBanjir: 'Banjir',
+  nhPetir: 'Petir',
+  leJmlBangunan: 'Jumlah bangunan terdampak',
+};
+
+/**
+ * Catatan desain (versi "required dilonggarkan"):
+ * jawaban kosong TIDAK dinilai skor terburuk — tiap field kosong memakai
+ * nilai netral berikut supaya formulir setengah terisi tidak melorotkan total
+ * secara tak wajar, dan kekosongannya dilaporkan lewat `incompleteByItem`.
+ */
+const NEUTRAL = {
+  /** Default netral Management bila kelima aspek kosong (mid rentang 2..8 ≈ 4). */
+  managementBase: 4,
+  /** Default netral Occupancy (band Average). */
+  occupancy: 6,
+  /** Default netral komponen Protection (band Average). */
+  protectionChoice: 'avg' as ProtectionChoice,
+  /** Default netral waktu respons damkar (mid rentang 2..8). */
+  pDamkar: 4,
+} as const;
 
 /**
  * Status Syarat Wajib Hydrant (port `getHidranWajibStatus` prototipe):
@@ -173,21 +222,35 @@ function downgradeConstructionOneTier(score: number): number {
 export function computeGradeScores(input: GradeInputs): GradeResult {
   // ---- MANAGEMENT ----
   // 5 aspek inti: Good hanya bila 5/5 terpenuhi (4/5=Average, 3/5=Marginal, 0–2/5=Poor).
+  // Aspek yang belum dijawab dihitung setengah poin (bukan otomatis "tidak"),
+  // dan bila kelima aspek kosong → base netral NEUTRAL.managementBase.
   const answers = input.mAnswers;
-  const mChecked = answers
-    ? M_ASPECT_IDS.filter((id) => answers[id] === 'yes').length
-    : (input.mChecklist?.length ?? 0);
-  const mBase = mChecked === 5 ? 8 : mChecked === 4 ? 6 : mChecked === 3 ? 4 : 2;
+  let mBase: number;
+  if (!answers) {
+    // Payload lama tanpa mAnswers — pakai mChecklist seperti sebelumnya.
+    const mChecked = input.mChecklist?.length ?? 0;
+    mBase = mChecked === 5 ? 8 : mChecked === 4 ? 6 : mChecked === 3 ? 4 : 2;
+  } else {
+    const mYes = M_ASPECT_IDS.filter((id) => answers[id] === 'yes').length;
+    const mEmpty = M_ASPECT_IDS.filter((id) => answers[id] === '').length;
+    if (mEmpty === M_ASPECT_IDS.length) {
+      mBase = NEUTRAL.managementBase;
+    } else {
+      const scored = mYes + 0.5 * mEmpty;
+      mBase = scored >= 5 ? 8 : scored >= 4 ? 6 : scored >= 3 ? 4 : 2;
+    }
+  }
 
   let mAdj = 0;
   if (input.mKlaim === '3+') mAdj -= 2;
   else if (input.mKlaim === '1-2') mAdj -= 1;
-  if (input.mKlaim !== '0' && input.mImprovement === 'yes') mAdj += 2;
+  if (input.mKlaim !== '' && input.mKlaim !== '0' && input.mImprovement === 'yes') mAdj += 2;
   if (input.mRekomendasi === 'yes') mAdj += 2;
   // Kredit hanya mengompensasi penalti klaim — tidak boleh menaikkan di atas mBase.
   const management = Math.max(2, Math.min(mBase, mBase + mAdj));
 
   // ---- CONSTRUCTION ----
+  // '' (belum dijawab) jatuh ke 4 — netral, sama seperti '2' (tanpa informasi).
   const cBase =
     input.cKelas === '8' ? 8 : input.cKelas === '6' ? 6 : input.cKelas === '3' ? 3 : 4; // '4' & '2' (noinfo) = 4
   let construction = cBase;
@@ -195,21 +258,36 @@ export function computeGradeScores(input: GradeInputs): GradeResult {
   if (input.cAcp === 'yes') construction = downgradeConstructionOneTier(construction);
 
   // ---- OCCUPANCY — otomatis dari Breakdown Okupansi ASWATA ----
+  // '' (belum dijawab) → netral Average (6), bukan skor terendah.
   const occupancy =
-    input.oHazard === '8' ? 8 : input.oHazard === '6a' || input.oHazard === '6b' ? 6 : 4;
+    input.oHazard === '8'
+      ? 8
+      : input.oHazard === '6a' || input.oHazard === '6b'
+        ? 6
+        : input.oHazard === '4a' || input.oHazard === '4b' || input.oHazard === '4c'
+          ? 4
+          : NEUTRAL.occupancy;
 
   // ---- PROTECTION ----
+  // '' (belum dijawab) → netral Average; waktu respons kosong → mid rentang.
+  const pApar = input.pApar || NEUTRAL.protectionChoice;
+  const pHidran = input.pHidran || NEUTRAL.protectionChoice;
+  const pDetektor = input.pDetektor || NEUTRAL.protectionChoice;
+  const pSprinkler = input.pSprinkler || NEUTRAL.protectionChoice;
+  const pDamkar = input.pDamkar ? Number(input.pDamkar) : NEUTRAL.pDamkar;
+
   let pTotal = 0;
-  pTotal += PROTECTION_SCORES.apar[input.pApar] * PROTECTION_WEIGHTS.apar;
-  pTotal += PROTECTION_SCORES.hidran[input.pHidran] * PROTECTION_WEIGHTS.hidran;
-  pTotal += PROTECTION_SCORES.detektor[input.pDetektor] * PROTECTION_WEIGHTS.detektor;
-  pTotal += PROTECTION_SCORES.sprinkler[input.pSprinkler] * PROTECTION_WEIGHTS.sprinkler;
-  pTotal += Number(input.pDamkar) * 0.1;
+  pTotal += PROTECTION_SCORES.apar[pApar] * PROTECTION_WEIGHTS.apar;
+  pTotal += PROTECTION_SCORES.hidran[pHidran] * PROTECTION_WEIGHTS.hidran;
+  pTotal += PROTECTION_SCORES.detektor[pDetektor] * PROTECTION_WEIGHTS.detektor;
+  pTotal += PROTECTION_SCORES.sprinkler[pSprinkler] * PROTECTION_WEIGHTS.sprinkler;
+  pTotal += pDamkar * 0.1;
   let protection = Math.round(pTotal);
 
-  // Override: Hydrant wajib tapi tidak tersedia → skor otomatis 2 (Poor).
+  // Override: Hydrant wajib tapi JELAS tidak tersedia ('none') → skor otomatis 2 (Poor).
+  // Belum dijawab ('') tidak memicu override — hanya ditandai incomplete.
   const hidran = getHidranWajibStatus(input);
-  if (hidran.wajib && (input.pHidran === 'none' || !input.pHidran)) {
+  if (hidran.wajib && pHidran === 'none') {
     protection = 2;
   }
 
@@ -229,6 +307,40 @@ export function computeGradeScores(input: GradeInputs): GradeResult {
 
   // ---- LOSS ESTIMATE — Jumlah Bangunan (semua jawaban rating Marginal) ----
   const lossEstimate = input.leJmlBangunan ? 3 : 5;
+
+  // ---- Field yang belum dijawab (ditandai di laporan, bukan skor terburuk) ----
+  const incompleteByItem: Partial<Record<GradeItemCode, string[]>> = {};
+  const flagMissing = (item: GradeItemCode, field: string, isMissing: boolean) => {
+    if (!isMissing) return;
+    const label = FIELD_LABELS[field] ?? field;
+    const list = (incompleteByItem[item] = incompleteByItem[item] ?? []);
+    list.push(label);
+  };
+  if (answers) {
+    for (const id of M_ASPECT_IDS) flagMissing('management', id, answers[id] === '');
+  }
+  flagMissing('management', 'mKlaim', !input.mKlaim);
+  flagMissing(
+    'management',
+    'mImprovement',
+    !!input.mKlaim && input.mKlaim !== '0' && input.mImprovement === '',
+  );
+  flagMissing('management', 'mRekomendasi', !input.mRekomendasi);
+  flagMissing('construction', 'cKelas', !input.cKelas);
+  flagMissing('construction', 'cSandwich', !input.cSandwich);
+  flagMissing('construction', 'cAcp', !input.cAcp);
+  flagMissing('occupancy', 'oHazard', !input.oHazard);
+  flagMissing('protection', 'pApar', !input.pApar);
+  flagMissing('protection', 'pHidran', !input.pHidran);
+  flagMissing('protection', 'pDetektor', !input.pDetektor);
+  flagMissing('protection', 'pSprinkler', !input.pSprinkler);
+  flagMissing('protection', 'pDamkar', !input.pDamkar);
+  flagMissing('exposure', 'exKondisi', !input.exKondisi);
+  flagMissing('natural_hazards', 'nhGempa', !input.nhGempa);
+  flagMissing('natural_hazards', 'nhBanjir', !input.nhBanjir);
+  flagMissing('natural_hazards', 'nhPetir', !input.nhPetir);
+  flagMissing('loss_estimate', 'leJmlBangunan', !input.leJmlBangunan);
+  // lePemisah sengaja tidak ditandai — masih TBC di prototipe (tidak wajib).
 
   const scores: Record<GradeItemCode, number> = {
     management,
@@ -252,7 +364,7 @@ export function computeGradeScores(input: GradeInputs): GradeResult {
     category = 'POOR';
   }
 
-  return { scores, total, category };
+  return { scores, total, category, incompleteByItem };
 }
 
 /** Band label per skor item (untuk tabel detail hasil). */
