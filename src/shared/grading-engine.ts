@@ -187,7 +187,7 @@ export function getHidranWajibStatus(input: GradeInputs): { wajib: boolean; alas
     alasan.push(
       'Waktu respons pemadam kebakaran publik > 30 menit',
       'Kategori risiko: ' + HIDRAN_THRESHOLD[cat].label,
-      'TSI Rp ' + tsi.toLocaleString('id-ID') + ' ≥ Rp ' + HIDRAN_THRESHOLD[cat].amount.toLocaleString('id-ID'),
+      'TSI Rp ' + tsi.toLocaleString('en-US') + ' ≥ Rp ' + HIDRAN_THRESHOLD[cat].amount.toLocaleString('en-US'),
     );
   }
 
