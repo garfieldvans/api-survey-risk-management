@@ -92,6 +92,26 @@ const createSurveySchema = z.object({
       notes: gradeNotesSchema,
     })
     .optional(),
+}).superRefine((val, ctx) => {
+  // Field wajib tab Survey Umum (poin review #1): frontend sudah mengunci
+  // navigasi, tapi backend ikut menegakkan supaya isian kosong tidak lolos
+  // lewat bypass. Hanya berlaku saat extraData dikirim (kompatibel alur lama).
+  const extra = val.property.extraData;
+  if (!extra) return;
+  const fail = (message: string) =>
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['property', 'extraData'],
+      message,
+    });
+  if (typeof extra.kota !== 'string' || !extra.kota.trim())
+    fail('Kabupaten / Kota wajib diisi');
+  if (typeof extra.gps !== 'string' || !extra.gps.trim())
+    fail('Koordinat GPS wajib diisi');
+  if (typeof extra.kodePos !== 'string' || !/^\d{5}$/.test(extra.kodePos.trim()))
+    fail('Kode Pos harus 5 digit');
+  if (typeof extra.tsi !== 'number' || !Number.isFinite(extra.tsi) || extra.tsi <= 0)
+    fail('Nilai Pertanggungan (TSI) wajib diisi');
 });
 
 const TRANSITIONS: Record<SurveyStatus, SurveyStatus[]> = {
