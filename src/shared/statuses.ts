@@ -1,10 +1,10 @@
 export const SURVEY_STATUSES = [
   'ONBOARD',
   'REVIEW',
-  'GRADING',
-  'DONE',
-  'CLOSED',
+  'REQUEST_REVISE',
+  'REVISED',
   'REJECTED',
+  'APPROVED',
 ] as const;
 
 export type SurveyStatus = (typeof SURVEY_STATUSES)[number];

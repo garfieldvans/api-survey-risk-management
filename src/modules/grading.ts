@@ -42,8 +42,8 @@ export async function gradingRoutes(fastify: FastifyInstance) {
 
     const survey = await prisma.survey.findUnique({ where: { id } });
     if (!survey) throw new AppError('Survei tidak ditemukan', 404);
-    if (survey.status !== 'GRADING') {
-      throw new AppError(`Survei harus dalam status GRADING untuk diberi grade (status: ${survey.status})`, 400);
+    if (survey.status !== 'REVIEW') {
+      throw new AppError(`Survei harus dalam status REVIEW untuk diberi grade (status: ${survey.status})`, 400);
     }
 
     // All 8 items must exist; compute total & category authoritative from scores
@@ -57,9 +57,9 @@ export async function gradingRoutes(fastify: FastifyInstance) {
     const totalScore = body.items.reduce((sum, r) => sum + r.score, 0);
     const category = categoryOfScore(totalScore);
 
-    // Upsert 8 SurveyResponse rows + RiskGrade, move status to DONE in one
-    // transaction. Timeout dinaikkan: di serverless + Neon, per-query latency
-    // tinggi membuat default 5s Prisma sering expired (error P2028 → 500).
+    // Upsert 8 SurveyResponse rows + RiskGrade dan finalisasi review (status
+    // APPROVED) dalam satu transaksi. Timeout dinaikkan: di serverless + Neon,
+    // per-query latency tinggi membuat default 5s Prisma sering expired (P2028 → 500).
     const grade = await prisma.$transaction(async (tx) => {
       await tx.surveyResponse.deleteMany({ where: { surveyId: id } });
       await tx.surveyResponse.createMany({
@@ -70,9 +70,10 @@ export async function gradingRoutes(fastify: FastifyInstance) {
         })),
       });
 
+      // Grading hanya dilakukan saat REVIEW; menyelesaikan grading = approve survey.
       await tx.survey.update({
         where: { id },
-        data: { status: 'DONE' },
+        data: { status: 'APPROVED' },
       });
 
       return tx.riskGrade.upsert({

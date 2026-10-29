@@ -7,7 +7,7 @@ import { ok, AppError } from '../lib/http';
 import { notifyAdmins, notifyAdminsForStatusChange } from './notifications-helpers';
 import { getQuestionIdsForOccupation } from './questions';
 import { deleteObject } from '../plugins/storage';
-import { computeGradeScores, GRADE_ITEM_CODES } from '../shared/index.js';
+import { computeGradeScores, GRADE_ITEM_CODES, TRANSITIONS } from '../shared/index.js';
 
 // --------------- Zod schemas ---------------
 
@@ -114,15 +114,8 @@ const createSurveySchema = z.object({
     fail('Nilai Pertanggungan (TSI) wajib diisi');
 });
 
-const TRANSITIONS: Record<SurveyStatus, SurveyStatus[]> = {
-  ONBOARD: ['REVIEW'],
-  REVIEW: ['GRADING', 'CLOSED', 'REJECTED'],
-  GRADING: ['DONE', 'CLOSED', 'REJECTED'],
-  DONE: ['CLOSED'],
-  CLOSED: [],
-  REJECTED: [],
-};
-
+// Aturan transisi status tinggal di shared/transitions.ts (TRANSITIONS diimpor di atas)
+// supaya bisa di-unit-test tanpa menyentuh route.
 
 // --------------- Helpers ---------------
 
@@ -344,7 +337,7 @@ export async function surveyRoutes(fastify: FastifyInstance) {
         });
 
         // adminId null = grading otomatis dari surveyor; admin dapat override
-        // lewat POST /surveys/:id/grade pada tahap GRADING.
+        // lewat POST /surveys/:id/grade pada tahap REVIEW.
         await tx.riskGrade.create({
           data: {
             surveyId: s.id,
@@ -443,6 +436,9 @@ export async function surveyRoutes(fastify: FastifyInstance) {
         data: {
           surveyDate: body.surveyDate ?? existing.surveyDate,
           notes: body.notes,
+          // Submit ulang saat masih berstatus REQUEST_REVISE = surveyor telah
+          // mengerjakan revisi → tandai REVISED supaya masuk antrean review lagi.
+          ...(existing.status === 'REQUEST_REVISE' ? { status: 'REVISED' as const } : {}),
         },
       });
 
@@ -505,6 +501,12 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     // Only admin can move status; surveyor can only view own
     if (user.role === Role.SURVEYOR) throw new AppError('Hanya admin yang bisa mengubah status', 403);
 
+    // Saat REQUEST_REVISE survey menunggu surveyor mengirim revisi (PUT /surveys/:id)
+    // — admin tidak boleh menyetel statusnya secara manual.
+    if (survey.status === 'REQUEST_REVISE') {
+      throw new AppError('Survei sedang menunggu revisi surveyor', 400);
+    }
+
     const allowed = TRANSITIONS[survey.status];
     if (!allowed.includes(newStatus)) {
       throw new AppError(`Transisi dari ${survey.status} ke ${newStatus} tidak valid`, 400);
@@ -534,6 +536,11 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     });
 
     if (!survey) throw new AppError('Survei tidak ditemukan', 404);
+
+    // Hanya survei yang di-reject yang boleh dihapus (poin review file).
+    if (survey.status !== 'REJECTED') {
+      throw new AppError('Hanya survei berstatus REJECTED yang bisa dihapus', 400);
+    }
 
     // Cleanup R2 files
     await cleanupSurveyR2Files(survey.attachments);

@@ -223,13 +223,31 @@ async function main() {
   const notifHasNew = JSON.stringify(notifBefore.json ?? {}).includes('Survei baru masuk');
   record('Notifications: admin dapat notif survey baru', notifBefore.status === 200 && notifHasNew, `status=${notifBefore.status}`);
 
-  for (const next of ['REVIEW', 'GRADING']) {
-    const tr = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: next });
-    record(`Status: ONBOARD→…→${next}`, tr.status === 200, `status=${tr.status} ${tr.text.slice(0, 120)}`);
+  {
+    const tr = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'REVIEW' });
+    record(`Status: ONBOARD→REVIEW`, tr.status === 200, `status=${tr.status} ${tr.text.slice(0, 120)}`);
   }
 
   const invalidTr = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'ONBOARD' });
-  record('Negative: transisi balik GRADING→ONBOARD → 400', invalidTr.status === 400, `status=${invalidTr.status}`);
+  record('Negative: transisi balik REVIEW→ONBOARD → 400', invalidTr.status === 400, `status=${invalidTr.status}`);
+
+  // ---------- SIKLUS REQUEST REVISE ----------
+  {
+    const req = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'REQUEST_REVISE' });
+    record('Status: REVIEW→REQUEST_REVISE', req.status === 200, `status=${req.status}`);
+
+    const guard = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'REJECTED' });
+    record('Guard: admin ubah status saat REQUEST_REVISE → 400', guard.status === 400, `status=${guard.status}`);
+
+    // Surveyor submit revisi (PUT /surveys/:id) → status otomatis REVISED
+    const resubmit = await surveyor('PUT', `/api/surveys/${surveyId}`, payload);
+    record('Revisi: surveyor submit ulang', resubmit.status === 200, `status=${resubmit.status}`);
+    const afterResubmit = await surveyor('GET', `/api/surveys/${surveyId}`);
+    record('Revisi: status → REVISED', afterResubmit.json?.data?.survey?.status === 'REVISED', `status=${afterResubmit.json?.data?.survey?.status}`);
+
+    const back = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'REVIEW' });
+    record('Status: REVISED→REVIEW', back.status === 200, `status=${back.status}`);
+  }
 
   // admin override grading — schema: items[8] { itemCode, score 1..8 } + notes string
   const ITEM_CODES = ['management', 'construction', 'occupancy', 'protection', 'exposure', 'natural_hazards', 'other_peril', 'loss_estimate'];
@@ -239,14 +257,14 @@ async function main() {
   });
   record('Grading: admin override', override.status === 200 || override.status === 201, `status=${override.status} ${override.text.slice(0, 150)}`);
 
-  // Override yang sukses otomatis memindah status ke DONE — sesuaikan langkah
+  // Override grading hanya bisa saat REVIEW dan otomatis memindah status ke APPROVED
   const cur = await admin('GET', `/api/surveys/${surveyId}`);
   const curStatus = cur.json?.data?.survey?.status;
-  const remaining = curStatus === 'GRADING' ? ['DONE', 'CLOSED'] : ['CLOSED'];
-  for (const next of remaining) {
-    const tr = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: next });
-    record(`Status: →${next}`, tr.status === 200, `status=${tr.status} ${tr.text.slice(0, 120)}`);
-  }
+  record('Grading: status otomatis APPROVED setelah grade', curStatus === 'APPROVED', `status=${curStatus}`);
+
+  // APPROVED bersifat terminal — tidak ada transisi keluar
+  const afterApprove = await admin('PATCH', `/api/surveys/${surveyId}/status`, { status: 'REJECTED' });
+  record('Negative: APPROVED→REJECTED → 400', afterApprove.status === 400, `status=${afterApprove.status}`);
 
   const stats = await admin('GET', '/api/stats');
   record('Stats: GET /stats (admin)', stats.status === 200, `status=${stats.status}`);
@@ -255,8 +273,11 @@ async function main() {
   record('Notifications: read-all', readAll.status === 200, `status=${readAll.status}`);
 
   // ---------- CLEANUP ----------
+  // Karena grading mengubah status jadi APPROVED (terminal) dan hanya survei
+  // REJECTED yang boleh dihapus, DELETE atas survey ini ditolak 400 — ini justru
+  // memvalidasi aturan hapus-rejected-saja. Survey E2E sengaja ditinggalkan.
   const del = await admin('DELETE', `/api/surveys/${surveyId}`);
-  record('Cleanup: DELETE survey (admin)', del.status === 200 || del.status === 204, `status=${del.status}`);
+  record('Delete rule: DELETE survey APPROVED → 400 (hanya REJECTED yang boleh)', del.status === 400, `status=${del.status}`);
 
   return finish();
 }

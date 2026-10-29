@@ -15,10 +15,10 @@ enum Role {
 enum SurveyStatus {
   ONBOARD
   REVIEW
-  GRADING
-  DONE
-  CLOSED
+  REQUEST_REVISE
+  REVISED
   REJECTED
+  APPROVED
 }
 
 enum GradeCategory {
