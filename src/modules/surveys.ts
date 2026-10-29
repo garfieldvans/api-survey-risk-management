@@ -123,7 +123,6 @@ const TRANSITIONS: Record<SurveyStatus, SurveyStatus[]> = {
   REJECTED: [],
 };
 
-const CLOSE_STATUSES: SurveyStatus[] = ['CLOSED', 'REJECTED'];
 
 // --------------- Helpers ---------------
 
@@ -378,6 +377,121 @@ export async function surveyRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * PUT /surveys/:id — edit data survei (surveyor pemilik atau admin).
+   * Bentuk body sama dengan POST /surveys (property, surveyDate, notes,
+   * answers, grading). REPLACE semantics: field yang dikirim menimpa data lama.
+   * `grading` opsional — bila tidak dikirim, penilaian lama dipertahankan utuh
+   * (dipakai untuk survei lama yang input penilaianannya belum tersimpan).
+   */
+  fastify.put('/surveys/:id', { preHandler: [authenticate()] }, async (request) => {
+    const user = request.user!;
+    const { id } = request.params as { id: string };
+    const body = createSurveySchema.parse(request.body);
+
+    const existing = await prisma.survey.findUnique({
+      where: { id },
+      include: { property: { select: { id: true } } },
+    });
+    if (!existing) throw new AppError('Survei tidak ditemukan', 404);
+    assertSurveyAccess(user, existing.surveyorId);
+
+    if (body.property.occupationId) {
+      const occupation = await prisma.occupation.findUnique({
+        where: { id: body.property.occupationId },
+        include: { children: { take: 1 } },
+      });
+      if (!occupation) throw new AppError('Okupasi tidak ditemukan', 400);
+      if (occupation.children.length > 0) throw new AppError('Okupasi harus node daun (tanpa anak)', 400);
+    }
+
+    await validateAnswers(body.answers, body.property.occupationId ?? null);
+
+    // Grade resmi admin (adminId terisi) dijaga tetap — tidak ditimpa edit surveyor.
+    const existingGrade = await prisma.riskGrade.findUnique({
+      where: { surveyId: id },
+      select: { adminId: true },
+    });
+    const adminGraded = !!existingGrade?.adminId;
+
+    // Prefetch data grading SEKALI di luar transaksi (lihat catatan timeout di POST).
+    let itemByCode: Map<string, string> | null = null;
+    let gradeResult: ReturnType<typeof computeGradeScores> | null = null;
+    if (body.grading && !adminGraded) {
+      const dbItems = await prisma.surveyItem.findMany();
+      itemByCode = new Map(dbItems.map((i) => [i.code, i.id]));
+      const missingItems = GRADE_ITEM_CODES.filter((c) => !itemByCode!.has(c));
+      if (missingItems.length > 0) {
+        throw new AppError(`SurveyItem belum di-seed: ${missingItems.join(', ')}`, 500);
+      }
+      gradeResult = computeGradeScores(body.grading.inputs);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.property.update({
+        where: { id: existing.propertyId },
+        data: {
+          name: body.property.name,
+          address: body.property.address,
+          ownerName: body.property.ownerName,
+          occupationId: body.property.occupationId ?? null,
+          extraData: (body.property.extraData as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
+        },
+      });
+
+      await tx.survey.update({
+        where: { id },
+        data: {
+          surveyDate: body.surveyDate ?? existing.surveyDate,
+          notes: body.notes,
+        },
+      });
+
+      await tx.surveyAnswer.deleteMany({ where: { surveyId: id } });
+      if (body.answers.length > 0) {
+        await tx.surveyAnswer.createMany({
+          data: body.answers.map((a) => ({
+            surveyId: id,
+            questionId: a.questionId,
+            value: a.value.trim(),
+          })),
+        });
+      }
+
+      if (body.grading && gradeResult && itemByCode && !adminGraded) {
+        const notesMap = body.grading.notes ?? {};
+        await tx.surveyResponse.deleteMany({ where: { surveyId: id } });
+        await tx.surveyResponse.createMany({
+          data: GRADE_ITEM_CODES.map((code) => {
+            const baseTrim = (notesMap[code as keyof typeof notesMap] ?? '').trim();
+            const missing = gradeResult!.incompleteByItem[code];
+            const flag = missing?.length ? `Belum dijawab: ${missing.join(', ')}.` : '';
+            const notes = flag
+              ? baseTrim
+                ? `${baseTrim}${/[.!?]$/.test(baseTrim) ? ' ' : '. '}${flag}`
+                : flag
+              : baseTrim || null;
+            return {
+              surveyId: id,
+              itemId: itemByCode!.get(code)!,
+              score: gradeResult!.scores[code],
+              notes,
+            };
+          }),
+        });
+
+        await tx.riskGrade.upsert({
+          where: { surveyId: id },
+          update: { totalScore: gradeResult.total, category: gradeResult.category },
+          create: { surveyId: id, totalScore: gradeResult.total, category: gradeResult.category },
+        });
+      }
+    }, { timeout: 15000, maxWait: 10000 });
+
+    const survey = await getSurveyOrThrow(id);
+    return ok({ survey });
+  });
+
+  /**
    * PATCH /surveys/:id/status — transition status with validation.
    */
   fastify.patch('/surveys/:id/status', { preHandler: [authenticate()] }, async (request) => {
@@ -408,7 +522,8 @@ export async function surveyRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * DELETE /surveys/:id — only when status is CLOSED or REJECTED. Also deletes R2 files.
+   * DELETE /surveys/:id — admin saja, tanpa batasan status. Juga menghapus
+   * file lampiran di R2.
    */
   fastify.delete('/surveys/:id', { preHandler: [authenticate(), requireRole(Role.ADMIN)] }, async (request) => {
     const { id } = request.params as { id: string };
@@ -419,9 +534,6 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     });
 
     if (!survey) throw new AppError('Survei tidak ditemukan', 404);
-    if (!CLOSE_STATUSES.includes(survey.status)) {
-      throw new AppError(`Hanya survei CLOSED atau REJECTED yang bisa dihapus (status: ${survey.status})`, 400);
-    }
 
     // Cleanup R2 files
     await cleanupSurveyR2Files(survey.attachments);
