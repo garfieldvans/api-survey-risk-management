@@ -6,7 +6,7 @@ import { authenticate, requireRole, assertSurveyAccess } from '../plugins/auth';
 import { ok, AppError } from '../lib/http';
 import { notifyAdmins, notifyAdminsForStatusChange } from './notifications-helpers';
 import { getQuestionIdsForOccupation } from './questions';
-import { deleteObject } from '../plugins/storage';
+import { deleteObject, presignedDownloadUrl, isStorageConfigured } from '../plugins/storage';
 import { computeGradeScores, GRADE_ITEM_CODES, TRANSITIONS } from '../shared/index.js';
 
 // --------------- Zod schemas ---------------
@@ -146,6 +146,26 @@ async function cleanupSurveyR2Files(attachments: Array<{ fileKey: string }>): Pr
   }
 }
 
+/**
+ * Sertakan presigned download URL pada tiap lampiran — dipakai FE untuk
+ * pratinjau (img/video src) dan tautan unduh di halaman detail survei.
+ * Tanpa ini `downloadUrl` selalu null sehingga tautan lampiran mati ('#')
+ * dan preview tidak pernah tampil.
+ */
+async function withAttachmentUrls<T extends { attachments: Array<{ fileKey: string }> }>(
+  survey: T,
+) {
+  const attachments = await Promise.all(
+    survey.attachments.map(async (att) => ({
+      ...att,
+      downloadUrl: isStorageConfigured()
+        ? await presignedDownloadUrl(att.fileKey).catch(() => null)
+        : null,
+    })),
+  );
+  return { ...survey, attachments };
+}
+
 async function validateAnswers(
   answers: Array<{ questionId: string; value: string }>,
   occupationId: string | null,
@@ -241,7 +261,7 @@ export async function surveyRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const survey = await getSurveyOrThrow(id);
     assertSurveyAccess(request.user!, survey.surveyorId);
-    return ok({ survey });
+    return ok({ survey: await withAttachmentUrls(survey) });
   });
 
   /**

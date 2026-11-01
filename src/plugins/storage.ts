@@ -7,20 +7,34 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from '../config';
 
-const s3 = new S3Client({
-  region: 'auto',
-  endpoint: config.r2.endpoint,
-  credentials: {
-    accessKeyId: config.r2.accessKeyId,
-    secretAccessKey: config.r2.secretAccessKey,
-  },
-});
+// Client di-cache: membuat S3Client baru per request berarti buka koneksi TLS
+// baru setiap upload/download. Config tidak berubah selama process hidup.
+let client: S3Client | null = null;
 
-const BUCKET = config.r2.bucketName;
+function getClient(): S3Client {
+  if (client) return client;
+  const s = config.storage;
+  client = new S3Client({
+    region: s.region || 'auto',
+    endpoint: s.endpoint,
+    credentials: {
+      accessKeyId: s.accessKeyId,
+      secretAccessKey: s.secretAccessKey,
+    },
+    forcePathStyle: s.forcePathStyle || false,
+    requestHandler: { requestTimeout: 30_000, connectionTimeout: 10_000 },
+  });
+  return client;
+}
 
 export interface StoredFile {
   key: string;
   url?: string;
+}
+
+export function isStorageConfigured(): boolean {
+  const s = config.storage;
+  return Boolean(s.endpoint && s.accessKeyId && s.secretAccessKey);
 }
 
 export async function uploadFile(
@@ -31,28 +45,26 @@ export async function uploadFile(
     contentLength: number;
   },
 ): Promise<StoredFile> {
-  await s3.send(
+  const client = getClient();
+  await client.send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: config.storage.bucketName,
       Key: key,
       Body: body,
       ContentType: contentType,
       ContentLength: contentLength,
     }),
   );
-
   return { key };
 }
 
 export async function deleteObject(key: string): Promise<void> {
-  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  const client = getClient();
+  await client.send(new DeleteObjectCommand({ Bucket: config.storage.bucketName, Key: key }));
 }
 
 export async function presignedDownloadUrl(key: string, expiresIn = 3600): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
-  return getSignedUrl(s3, command, { expiresIn });
-}
-
-export function isStorageConfigured(): boolean {
-  return Boolean(config.r2.accountId && config.r2.accessKeyId && config.r2.secretAccessKey);
+  const client = getClient();
+  const command = new GetObjectCommand({ Bucket: config.storage.bucketName, Key: key });
+  return getSignedUrl(client, command, { expiresIn });
 }

@@ -215,9 +215,11 @@ async function main() {
   const crossUpload = await s2('POST', `/api/surveys/${surveyId}/attachments`);
   record('Otorisasi: surveyor2 upload → 403', crossUpload.status === 403, `status=${crossUpload.status}`);
 
-  // Upload nonaktif (R2 belum dikonfigurasi) → 503, bukan 500
+  // Upload: storage aktif → POST tanpa file = 400 (bukan 500); kalau storage
+  // belum dikonfigurasi → 503 "belum diaktifkan".
   const attUpload = await surveyor('POST', `/api/surveys/${surveyId}/attachments`);
-  record('Upload: nonaktif → 503 (bukan 500)', attUpload.status === 503, `status=${attUpload.status} ${attUpload.text.slice(0, 100)}`);
+  const uploadOk = attUpload.status === 400 || attUpload.status === 503;
+  record('Upload: tanpa file → 400 (atau 503 bila storage nonaktif)', uploadOk, `status=${attUpload.status} ${attUpload.text.slice(0, 100)}`);
 
   const notifBefore = await admin('GET', '/api/notifications');
   const notifHasNew = JSON.stringify(notifBefore.json ?? {}).includes('Survei baru masuk');

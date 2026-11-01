@@ -11,13 +11,15 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET ?? '',
   jwtCookieName: process.env.JWT_COOKIE_NAME ?? 'sr_token',
   databaseUrl: process.env.DATABASE_URL ?? '',
-  r2: {
-    accountId: process.env.R2_ACCOUNT_ID ?? '',
-    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
-    bucketName: process.env.R2_BUCKET_NAME ?? 'survey-reports',
-    publicUrl: process.env.R2_PUBLIC_URL ?? '',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID ?? ''}.r2.cloudflarestorage.com`,
+  // Object storage (S3-compatible — bawaan: Backblaze B2).
+  // Karna kamu pakai B2 tanpa kartu kredit, set STORAGE_ENDPOINT + STORAGE_REGION + force path_style.
+  storage: {
+    endpoint: process.env.STORAGE_ENDPOINT ?? '',
+    region: process.env.STORAGE_REGION ?? process.env.B2_REGION ?? '',
+    forcePathStyle: process.env.STORAGE_FORCE_PATH_STYLE === 'true' || process.env.B2_FORCE_PATH_STYLE === 'true',
+    accessKeyId: process.env.B2_KEY_ID ?? '',
+    secretAccessKey: process.env.B2_APPLICATION_KEY ?? '',
+    bucketName: process.env.STORAGE_BUCKET ?? 'survey-photos',
   },
 };
 
@@ -26,6 +28,10 @@ export function assertConfig(): void {
   const missing: string[] = [];
   if (!config.jwtSecret) missing.push('JWT_SECRET');
   if (!config.databaseUrl) missing.push('DATABASE_URL');
+  if (!config.storage?.endpoint) missing.push('STORAGE_ENDPOINT (contoh: https://s3.<region>.backblazeb2.com)');
+  if (!config.storage?.region) missing.push('STORAGE_REGION / B2_REGION (contoh: us-west-002)');
+  if (!config.storage?.accessKeyId) missing.push('B2_KEY_ID');
+  if (!config.storage?.secretAccessKey) missing.push('B2_APPLICATION_KEY');
   if (missing.length > 0) {
     throw new Error(`Missing required env vars: ${missing.join(', ')}`);
   }

@@ -8,12 +8,19 @@ import { uploadFile, deleteObject, presignedDownloadUrl, isStorageConfigured } f
 
 const ATTACHMENT_KINDS = ['photo', 'document', 'video'] as const;
 
-/** Batas ukuran file upload (10 MB) — serverless function punya limit memory & body. */
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+/** Batas ukuran file upload (5 MB) — serverless function punya limit memory & body. */
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Prefix wajib untuk semua object di B2: application key yang dipakai dibuat
+ * dengan file name prefix `SD_`, sehingga object dengan key lain ditolak
+ * (403 AccessDenied "not entitled"). Lihat .env → B2_KEY_ID.
+ */
+const STORAGE_KEY_PREFIX = 'SD_';
 
 export async function attachmentRoutes(fastify: FastifyInstance) {
   /**
-   * POST /surveys/:id/attachments — multipart upload to R2.
+   * POST /surveys/:id/attachments — multipart upload ke object storage (B2).
    * Field name: "file"
    */
   fastify.post('/surveys/:id/attachments', { preHandler: [authenticate()] }, async (request, reply) => {
@@ -23,15 +30,21 @@ export async function attachmentRoutes(fastify: FastifyInstance) {
     if (!survey) throw new AppError('Survei tidak ditemukan', 404);
     assertSurveyAccess(request.user!, survey.surveyorId);
     if (!isStorageConfigured()) {
-      // 503 Service Unavailable — fitur memang belum diaktifkan (env R2 kosong),
-      // bukan bug server. FE menampilkan pesan ini apa adanya.
+      // 503 Service Unavailable — fitur memang belum diaktifkan (env STORAGE_*
+      // / B2_* kosong), bukan bug server. FE menampilkan pesan ini apa adanya.
       throw new AppError(
-        'Upload lampiran belum diaktifkan. Hubungi admin untuk konfigurasi Cloudflare R2.',
+        'Upload lampiran belum diaktifkan. Hubungi admin untuk konfigurasi penyimpanan (Backblaze B2).',
         503,
       );
     }
 
-    const file = await request.file();
+    // Batas fileSize WAJIB di-set di sini: default @fastify/multipart hanya
+    // 1 MB dan hasilnya file besar dipotong diam-diam lalu tetap dibalas 201
+    // (kehilangan data). Dengan limit ini, file > 5 MB ditolak 413.
+    const file = await request.file({
+      limits: { fileSize: MAX_UPLOAD_BYTES },
+      throwFileSizeLimit: true,
+    });
     if (!file) throw new AppError('File tidak ditemukan', 400);
 
     const kindField = file.fields['kind'];
@@ -46,7 +59,7 @@ export async function attachmentRoutes(fastify: FastifyInstance) {
     let total = 0;
     for await (const chunk of file.file) {
       total += chunk.length;
-      if (total > MAX_UPLOAD_BYTES) {
+      if (total > MAX_UPLOAD_BYTES || file.file.truncated) {
         throw new AppError(
           `Ukuran file melebihi batas ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB`,
           413,
@@ -54,10 +67,18 @@ export async function attachmentRoutes(fastify: FastifyInstance) {
       }
       chunks.push(chunk);
     }
+    // Busboy memotong stream saat kena limits.fileSize; cek eksplisit karena
+    // `total` bisa berhenti tepat di batas sehingga lolos pemeriksaan di atas.
+    if (file.file.truncated) {
+      throw new AppError(
+        `Ukuran file melebihi batas ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB`,
+        413,
+      );
+    }
     const buffer = Buffer.concat(chunks);
 
     const ext = file.filename.split('.').pop() ?? 'bin';
-    const key = `surveys/${id}/${nanoid(12)}.${ext}`;
+    const key = `${STORAGE_KEY_PREFIX}/surveys/${id}/${nanoid(12)}.${ext}`;
 
     const stored = await uploadFile({
       key,
@@ -109,7 +130,7 @@ export async function attachmentRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * DELETE /surveys/:id/attachments/:attachmentId — delete from R2 + DB.
+   * DELETE /surveys/:id/attachments/:attachmentId — delete from object storage + DB.
    */
   fastify.delete('/surveys/:id/attachments/:attachmentId', { preHandler: [authenticate()] }, async (request) => {
     const { id, attachmentId } = request.params as { id: string; attachmentId: string };
@@ -125,7 +146,7 @@ export async function attachmentRoutes(fastify: FastifyInstance) {
 
     if (isStorageConfigured()) {
       await deleteObject(attachment.fileKey).catch((e) => {
-        console.warn(`Gagal hapus R2 object: ${attachment.fileKey}`, e.message);
+        console.warn(`Gagal hapus object storage: ${attachment.fileKey}`, e.message);
       });
     }
 
