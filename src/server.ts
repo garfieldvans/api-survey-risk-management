@@ -15,6 +15,7 @@ import { notificationRoutes } from './modules/notifications';
 import { statsRoutes } from './modules/stats';
 import { reportRoutes } from './modules/reports';
 import { questionRoutes } from './modules/questions';
+import { userRoutes } from './modules/users';
 import { prisma } from './plugins/prisma';
 
 function buildServer() {
@@ -58,6 +59,7 @@ function buildServer() {
   fastify.register(statsRoutes, { prefix: '/api' });
   fastify.register(reportRoutes, { prefix: '/api' });
   fastify.register(questionRoutes, { prefix: '/api' });
+  fastify.register(userRoutes, { prefix: '/api' });
 
   // Global error handler: zod validation + AppError
   fastify.setErrorHandler((error, request, reply) => {
